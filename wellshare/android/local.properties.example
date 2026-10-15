@@ -1,0 +1,7 @@
+# Only needed when you build the app on your own computer (Android Studio).
+# Copy this file to "local.properties" (same folder) and fill in your values.
+# GitHub Actions builds read the same values from repository secrets instead.
+#
+# sdk.dir is filled in automatically by Android Studio.
+supabase.url=https://YOUR-PROJECT-ID.supabase.co
+supabase.key=sb_publishable_xxxxxxxxxxxxxxxxxxxxxxxx

@@ -1,0 +1,55 @@
+# Publishes the mentor dashboard to GitHub Pages (https://<you>.github.io/<repo>/).
+# Turn on Pages first: Settings > Pages > Source: "GitHub Actions".
+name: Mentor dashboard
+
+on:
+  push:
+    branches: [main]
+    paths: ["dashboard/**", ".github/workflows/dashboard.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build page with your server settings
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          mkdir -p _site
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "::warning::SUPABASE_URL / SUPABASE_KEY secrets are missing, so the dashboard will show demo data."
+          fi
+          python3 - <<'PY'
+          import os
+          src = open("dashboard/index.html", encoding="utf-8").read()
+          src = src.replace("__SUPABASE_URL__", os.environ.get("SUPABASE_URL", "").strip().rstrip("/"))
+          src = src.replace("__SUPABASE_KEY__", os.environ.get("SUPABASE_KEY", "").strip())
+          head = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+                  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
+                  '<meta name="robots" content="noindex">\n')
+          open("_site/index.html", "w", encoding="utf-8").write(head + src + "\n</html>\n")
+          PY
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

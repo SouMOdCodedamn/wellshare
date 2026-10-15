@@ -1,0 +1,42 @@
+# Checks the database rules and the screen-time math on every push and pull request.
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Run database rule tests (in-memory Postgres)
+        working-directory: supabase/test
+        run: |
+          npm install --no-audit --no-fund
+          npm test
+
+  usage-math:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Install Kotlin compiler
+        run: |
+          curl -sSL -o kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.0.21/kotlin-compiler-2.0.21.zip
+          unzip -q kotlinc.zip
+      - name: Run screen-time math tests
+        working-directory: android
+        run: |
+          ../kotlinc/bin/kotlinc app/src/main/java/org/wellshare/app/UsageMath.kt \
+            app/src/test/java/org/wellshare/app/UsageMathTest.kt -include-runtime -d usage-test.jar
+          java -cp usage-test.jar org.wellshare.app.UsageMathTestKt

@@ -1,0 +1,12 @@
+{
+  "name": "wellshare-db-tests",
+  "private": true,
+  "type": "module",
+  "description": "Runs the database rules against an in-memory Postgres (PGlite). No Supabase account needed.",
+  "scripts": {
+    "test": "node test.mjs ../schema.sql"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.5.10"
+  }
+}

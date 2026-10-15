@@ -1,0 +1,819 @@
+<title>WellShare Mentor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Mentor dashboard for WellShare: daily screen time, unlocks and late-night phone use for each participant.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a hostel register. One row per student, one column per day, each cell shaded by hours of screen time. */
+:root {
+  --bg: #F2F4F1;
+  --surface: #FCFDFB;
+  --surface-2: #E9EDE8;
+  --ink: #18201B;
+  --ink-2: #4A574F;
+  --muted: #758079;
+  --line: #DCE2DC;
+  --accent: #2F6B57;
+  --accent-ink: #FFFFFF;
+  --accent-wash: rgba(47,107,87,.10);
+  --good: #0CA30C;
+  --warn: #E59A00;
+  --crit: #D03B3B;
+  --crit-wash: rgba(208,59,59,.08);
+  /* screen-time ramp: one hue, light -> dark = less -> more */
+  --h1: #E1F0E8; --h1i: #18201B;
+  --h2: #C3E2D2; --h2i: #18201B;
+  --h3: #9ACFB5; --h3i: #18201B;
+  --h4: #6DB896; --h4i: #18201B;
+  --h5: #449B78; --h5i: #10241B;
+  --h6: #2B7C5E; --h6i: #FFFFFF;
+  --h7: #175841; --h7i: #FFFFFF;
+  --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --font-ui: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1311; --surface: #171C19; --surface-2: #212823; --ink: #EAF0EC; --ink-2: #B7C2BB; --muted: #86918A;
+    --line: #2A322D; --accent: #7CC4A8; --accent-ink: #0E1A15; --accent-wash: rgba(124,196,168,.12);
+    --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10);
+    --h1: #1C2E26; --h1i: #EAF0EC; --h2: #224033; --h2i: #EAF0EC; --h3: #2A5743; --h3i: #EAF0EC;
+    --h4: #347158; --h4i: #EAF0EC; --h5: #42906F; --h5i: #0E1A15; --h6: #5BAE89; --h6i: #0E1A15; --h7: #8BD1AE; --h7i: #0E1A15;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1311; --surface: #171C19; --surface-2: #212823; --ink: #EAF0EC; --ink-2: #B7C2BB; --muted: #86918A;
+  --line: #2A322D; --accent: #7CC4A8; --accent-ink: #0E1A15; --accent-wash: rgba(124,196,168,.12);
+  --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10);
+  --h1: #1C2E26; --h1i: #EAF0EC; --h2: #224033; --h2i: #EAF0EC; --h3: #2A5743; --h3i: #EAF0EC;
+  --h4: #347158; --h4i: #EAF0EC; --h5: #42906F; --h5i: #0E1A15; --h6: #5BAE89; --h6i: #0E1A15; --h7: #8BD1AE; --h7i: #0E1A15;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-ui); font-size: 15px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; }
+h1, h2, h3 { margin: 0; text-wrap: balance; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding-block: 20px 16px; }
+.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+.brand-mark { width: 32px; height: 32px; border-radius: 9px; background: var(--accent); display: grid; place-items: center; }
+.brand-mark svg { display: block; }
+.brand h1 { font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.brand small { display: block; font-size: 13px; color: var(--muted); font-weight: 500; }
+.top-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--crit); border-color: var(--crit); background: transparent; }
+.btn.danger.solid { background: var(--crit); color: #fff; }
+.btn[disabled] { opacity: .5; cursor: default; }
+select.field, input.field { min-height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); }
+input.field { min-width: 0; }
+
+.banner { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; padding: 10px 14px; border-radius: var(--radius); background: var(--accent-wash); color: var(--ink-2); font-size: 14px; margin-bottom: 16px; }
+.banner strong { color: var(--ink); }
+
+/* stat tiles */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; min-width: 0; }
+.stat .label { font-size: 13px; color: var(--ink-2); }
+.stat .value { font-size: 28px; font-weight: 700; letter-spacing: -.01em; line-height: 1.2; margin-top: 2px; }
+.stat .note { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stat .value { font-size: 24px; } }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 10px; }
+.controls .grow { flex: 1 1 220px; }
+.controls select { flex: 1 1 150px; }
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12.5px; color: var(--ink-2); margin: 10px 0 0; }
+.legend .ramp { display: inline-flex; gap: 2px; }
+.legend .ramp span { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+.legend .ramp-labels { display: inline-flex; gap: 2px; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.legend .ramp-labels span { width: 22px; text-align: center; }
+
+/* register */
+.register-box { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; }
+table.register { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
+.register th, .register td { padding: 0; text-align: left; white-space: nowrap; }
+.register thead th { position: sticky; top: 0; background: var(--surface); font-weight: 600; font-size: 12px; color: var(--muted); padding: 10px 6px 8px; border-bottom: 1px solid var(--line); }
+.register thead th.day { text-align: center; padding-inline: 0; min-width: 40px; }
+.register thead th.day .dow { display: block; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
+.register thead th.day.today { color: var(--ink); }
+.register .who { position: sticky; left: 0; z-index: 1; background: var(--surface); padding: 8px 12px 8px 14px; min-width: 190px; max-width: 240px; border-right: 1px solid var(--line); }
+@media (max-width: 600px) { .register .who { min-width: 124px; max-width: 150px; padding-left: 12px; } .who .name { white-space: normal; line-height: 1.25; } }
+.register thead .who { z-index: 2; }
+.register tbody tr { cursor: pointer; }
+.register tbody tr:hover .who, .register tbody tr:focus-within .who { background: var(--surface-2); }
+.register tbody tr + tr td { border-top: 1px solid var(--line); }
+.who .name { font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; display: block; }
+.who .roll { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+.who button { all: unset; display: block; cursor: pointer; width: 100%; }
+td.cell { padding: 3px 1px; text-align: center; }
+td.cell .c { display: grid; place-items: center; height: 34px; margin: 0 1px; border-radius: 4px; font-family: var(--font-data); font-size: 11.5px; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--muted); }
+td.cell.today .c { box-shadow: inset 0 0 0 2px var(--ink); }
+td.cell .c:hover { filter: brightness(1.06) saturate(1.05); }
+.c1 { background: var(--h1) !important; color: var(--h1i) !important; }
+.c2 { background: var(--h2) !important; color: var(--h2i) !important; }
+.c3 { background: var(--h3) !important; color: var(--h3i) !important; }
+.c4 { background: var(--h4) !important; color: var(--h4i) !important; }
+.c5 { background: var(--h5) !important; color: var(--h5i) !important; }
+.c6 { background: var(--h6) !important; color: var(--h6i) !important; }
+.c7 { background: var(--h7) !important; color: var(--h7i) !important; }
+td.num { padding: 8px 10px; font-family: var(--font-data); font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); }
+td.num.first { padding-left: 16px; border-left: 1px solid var(--line); }
+td.sync { padding: 8px 14px 8px 10px; }
+th.num { text-align: right !important; }
+
+/* status chips: icon + label, never color alone */
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); padding: 2px 9px 2px 7px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.chip .dot { width: 12px; height: 12px; display: inline-grid; place-items: center; }
+.chip.good .dot { color: var(--good); }
+.chip.warn .dot { color: var(--warn); }
+.chip.crit .dot { color: var(--crit); }
+.chip.info .dot { color: var(--muted); }
+
+.empty { padding: 40px 20px; text-align: center; color: var(--ink-2); }
+.empty h3 { font-family: var(--font-display); font-size: 20px; margin-bottom: 6px; color: var(--ink); }
+
+/* detail */
+.back { margin: 4px 0 14px; }
+.detail-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 20px; margin-bottom: 16px; }
+.detail-head h2 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -.015em; line-height: 1.1; }
+.detail-head .meta { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; color: var(--ink-2); font-size: 14px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; min-width: 0; }
+.panel h3 { font-size: 15px; font-weight: 700; }
+.panel .sub { font-size: 13px; color: var(--muted); }
+.grid-2 { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 12px; margin-bottom: 12px; }
+@media (max-width: 860px) { .grid-2 { grid-template-columns: minmax(0, 1fr); } }
+.chart { width: 100%; height: auto; display: block; margin-top: 10px; }
+.chart text { font-family: var(--font-data); font-size: 10.5px; fill: var(--muted); }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .base { stroke: var(--muted); stroke-width: 1; }
+.chart .ref { stroke: var(--ink-2); stroke-width: 1; }
+.chart .ref-label { fill: var(--ink-2); font-family: var(--font-ui); font-size: 11.5px; font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.chart .bar { fill: var(--h5); }
+.chart .bar.today { fill: var(--h7); }
+.chart .bar:hover, .chart .hit:hover + .bar { fill: var(--accent); }
+.chart .hit { fill: transparent; cursor: default; }
+
+.apps { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.apps li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: baseline; }
+.apps .an { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.apps .av { font-family: var(--font-data); font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.apps .track { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
+.apps .fill { height: 100%; border-radius: 0 4px 4px 0; background: var(--h5); }
+
+.days-box { overflow-x: auto; margin-top: 10px; }
+table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+.days th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.days td { padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.days td.n, .days th.n { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+
+.danger-zone { margin-top: 12px; border-color: var(--line); }
+.confirm { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--crit-wash); display: grid; gap: 10px; }
+.confirm .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* login */
+.login { max-width: 400px; margin: 8vh auto 0; }
+.login h2 { font-family: var(--font-display); font-size: 28px; margin-bottom: 6px; }
+.login form { display: grid; gap: 12px; margin-top: 18px; }
+.login label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.login .error { color: var(--crit); font-size: 14px; min-height: 1.5em; }
+
+/* tooltip */
+.tip { position: fixed; z-index: 50; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 7px 10px; font-size: 12.5px; line-height: 1.35; max-width: 240px; box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+.tip strong { display: block; font-size: 14px; }
+
+.footer-note { margin-top: 18px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+@media (prefers-reduced-motion: no-preference) { .register-box, .panel { transition: opacity .2s; } }
+.loading { opacity: .55; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 20 20"><path fill="var(--accent-ink)" d="M3 16h3v-5H3zM8.5 16h3V8h-3zM14 16h3V5h-3z"/></svg>
+      </div>
+      <div>
+        <h1>WellShare</h1>
+        <small id="groupLabel">Mentor dashboard</small>
+      </div>
+    </div>
+    <div class="top-actions" id="topActions" hidden>
+      <select class="field" id="groupSelect" aria-label="Group" hidden></select>
+      <button class="btn" id="refreshBtn" type="button">Refresh</button>
+      <button class="btn" id="csvBtn" type="button" hidden>Download CSV</button>
+      <button class="btn" id="signOutBtn" type="button" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <section class="login" id="loginView" hidden>
+    <p class="eyebrow">Mentors only</p>
+    <h2>Sign in</h2>
+    <p class="muted">Use the email and password your project admin created for you in Supabase.</p>
+    <form id="loginForm" novalidate>
+      <label for="email">Email<input class="field" id="email" type="email" autocomplete="username" required></label>
+      <label for="password">Password<input class="field" id="password" type="password" autocomplete="current-password" required></label>
+      <div class="error" id="loginError" role="alert"></div>
+      <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <main id="boardView" hidden>
+    <div class="banner" id="demoBanner" hidden>
+      <strong>Demo data.</strong>
+      <span>These students are made up. Connect your Supabase project (see the guide) to see real reports.</span>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="controls">
+      <input class="field grow" id="search" type="search" placeholder="Search name or roll number" aria-label="Search participants">
+      <select class="field" id="sort" aria-label="Sort by">
+        <option value="avg">Most screen time (7 days)</option>
+        <option value="night">Most after midnight</option>
+        <option value="unlocks">Most unlocks</option>
+        <option value="sync">Oldest sync first</option>
+        <option value="name">Name A–Z</option>
+      </select>
+      <select class="field" id="range" aria-label="Days shown">
+        <option value="7">Last 7 days</option>
+        <option value="14" selected>Last 14 days</option>
+      </select>
+    </div>
+    <div class="register-box" id="registerBox"></div>
+    <div class="legend" aria-label="Colour key">
+      <span>Hours per day</span>
+      <span class="ramp-wrap" style="display:inline-grid;gap:2px">
+        <span class="ramp"><span style="background:var(--surface-2)"></span><span style="background:var(--h1)"></span><span style="background:var(--h2)"></span><span style="background:var(--h3)"></span><span style="background:var(--h4)"></span><span style="background:var(--h5)"></span><span style="background:var(--h6)"></span><span style="background:var(--h7)"></span></span>
+        <span class="ramp-labels"><span>–</span><span>&lt;1</span><span>1</span><span>2</span><span>3</span><span>4</span><span>6</span><span>8+</span></span>
+      </span>
+      <span>“–” means no report that day. Today has a dark outline. Tap a student for details.</span>
+    </div>
+    <p class="footer-note">Screen time is the time apps were open on screen, counted the same way as Android's Digital Wellbeing. After midnight means 00:00–05:00. Use these numbers to start a conversation, not to judge one day.</p>
+  </main>
+
+  <main id="detailView" hidden></main>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(() => {
+  // ---- Settings (filled in automatically by the GitHub Pages deploy) ----
+  const SUPABASE_URL = "__SUPABASE_URL__";
+  const SUPABASE_KEY = "__SUPABASE_KEY__";
+  const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js";
+
+  const configured = SUPABASE_URL.startsWith("https://") && SUPABASE_KEY.length > 20;
+  const demo = !configured || location.hash === "#demo";
+
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const svg = (tag, attrs) => { const n = document.createElementNS(SVGNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+
+  // ---- formatting ----
+  const pad = (n) => String(n).padStart(2, "0");
+  const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const addDays = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const x = new Date(y, m - 1, d + n); return isoDay(x); };
+  const todayIso = isoDay(new Date());
+  const dur = (sec) => {
+    if (sec == null) return "–";
+    const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+    if (h === 0) return `${m}m`;
+    return m === 60 ? `${h + 1}h 0m` : `${h}h ${m}m`;
+  };
+  const hours1 = (sec) => (sec / 3600).toFixed(1);
+  const dow = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  const dayNum = (iso) => Number(iso.slice(8));
+  const niceDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  const bin = (sec) => {
+    const h = sec / 3600;
+    if (h < 1) return 1; if (h < 2) return 2; if (h < 3) return 3; if (h < 4) return 4; if (h < 6) return 5; if (h < 8) return 6; return 7;
+  };
+  const ago = (ts) => {
+    if (!ts) return null;
+    const mins = (Date.now() - new Date(ts).getTime()) / 60000;
+    if (mins < 60) return `${Math.max(1, Math.round(mins))} min ago`;
+    if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`;
+    const d = Math.round(mins / 1440);
+    return d === 1 ? "1 day ago" : `${d} days ago`;
+  };
+  const syncState = (ts) => {
+    if (!ts) return { cls: "crit", text: "Never sent", rank: 1e9 };
+    const hrs = (Date.now() - new Date(ts).getTime()) / 3.6e6;
+    if (hrs <= 24) return { cls: "good", text: ago(ts), rank: hrs };
+    if (hrs <= 72) return { cls: "warn", text: ago(ts), rank: hrs };
+    return { cls: "crit", text: ago(ts), rank: hrs };
+  };
+  const ICONS = {
+    good: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="currentColor"/><path d="M3.3 6.2l1.8 1.8 3.6-3.8" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    warn: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l5.4 10.2H.6z" fill="currentColor"/><rect x="5.3" y="4" width="1.4" height="3.6" rx=".7" fill="#1b1b1b"/><circle cx="6" cy="9.1" r=".8" fill="#1b1b1b"/></svg>',
+    crit: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="currentColor"/><path d="M4 4l4 4M8 4L4 8" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg>',
+    info: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5.2" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="5.3" y="5" width="1.4" height="3.8" rx=".7" fill="currentColor"/><circle cx="6" cy="3.3" r=".8" fill="currentColor"/></svg>',
+  };
+  const chip = (cls, text, title) => {
+    const c = el("span", `chip ${cls}`);
+    const d = el("span", "dot"); d.innerHTML = ICONS[cls]; c.appendChild(d);
+    c.appendChild(document.createTextNode(text));
+    if (title) c.title = title;
+    return c;
+  };
+
+  // ---- tooltip ----
+  const tip = $("tip");
+  function showTip(target, title, lines) {
+    tip.replaceChildren(el("strong", null, title), ...lines.map((l) => el("div", null, l)));
+    tip.hidden = false;
+    const r = target.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    let x = r.left + r.width / 2 - tw / 2;
+    x = Math.max(8, Math.min(x, window.innerWidth - tw - 8));
+    let y = r.top - th - 8;
+    if (y < 8) y = r.bottom + 8;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  const hideTip = () => { tip.hidden = true; };
+  window.addEventListener("scroll", hideTip, { passive: true });
+
+  // ---- data layer: live (Supabase) or demo ----
+  let sb = null;
+  let groups = [];
+  let groupId = null;
+  let rows = [];          // mentor_overview rows
+  let view = "board";
+
+  const api = {
+    async groups() {
+      if (demo) return DEMO.groups;
+      const { data, error } = await sb.from("groups").select("id,name,join_code").order("name");
+      if (error) throw error;
+      return data;
+    },
+    async overview(gid) {
+      if (demo) return DEMO.overview(gid);
+      const { data, error } = await sb.rpc("mentor_overview", { p_group: gid, p_today: todayIso, p_days: 30 });
+      if (error) throw error;
+      return data;
+    },
+    async days(pid) {
+      if (demo) return DEMO.days(pid);
+      const { data, error } = await sb.rpc("mentor_participant_days", { p_participant: pid, p_today: todayIso, p_days: 30 });
+      if (error) throw error;
+      return data;
+    },
+    async remove(pid) {
+      if (demo) { DEMO.remove(pid); return; }
+      const { error } = await sb.from("participants").delete().eq("id", pid);
+      if (error) throw error;
+    },
+  };
+
+  // ---- views ----
+  function showOnly(id) {
+    for (const v of ["loginView", "boardView", "detailView"]) $(v).hidden = v !== id;
+    $("topActions").hidden = id === "loginView";
+    hideTip();
+  }
+
+  async function start() {
+    $("demoBanner").hidden = !demo;
+    $("csvBtn").hidden = demo;
+    $("signOutBtn").hidden = demo;
+    if (demo) { await loadGroups(); return; }
+    await loadScript(SUPABASE_JS);
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true } });
+    const { data } = await sb.auth.getSession();
+    if (data.session) await loadGroups(); else showOnly("loginView");
+  }
+
+  function loadScript(src) {
+    return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Couldn't load " + src)); document.head.appendChild(s); });
+  }
+
+  $("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("loginBtn"); btn.disabled = true; $("loginError").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email: $("email").value.trim(), password: $("password").value });
+    btn.disabled = false;
+    if (error) { $("loginError").textContent = "That email and password don't match a mentor login. Check them and try again."; return; }
+    await loadGroups();
+  });
+  $("signOutBtn").addEventListener("click", async () => { await sb.auth.signOut(); rows = []; showOnly("loginView"); });
+  $("refreshBtn").addEventListener("click", () => loadOverview());
+  $("groupSelect").addEventListener("change", (e) => { groupId = e.target.value; loadOverview(); });
+  ["search", "sort", "range"].forEach((id) => $(id).addEventListener("input", renderBoard));
+  $("csvBtn").addEventListener("click", downloadCsv);
+
+  async function loadGroups() {
+    try {
+      groups = await api.groups();
+    } catch (err) { return fatal(err); }
+    if (!groups.length) {
+      showOnly("boardView");
+      $("stats").replaceChildren();
+      $("registerBox").replaceChildren(emptyState("You aren't a mentor of any group yet",
+        "Ask your project admin to run setup_group in the Supabase SQL editor with your email."));
+      return;
+    }
+    const sel = $("groupSelect");
+    sel.replaceChildren(...groups.map((g) => { const o = el("option", null, g.name); o.value = g.id; return o; }));
+    sel.hidden = groups.length < 2;
+    groupId = groupId && groups.some((g) => g.id === groupId) ? groupId : groups[0].id;
+    sel.value = groupId;
+    await loadOverview();
+  }
+
+  async function loadOverview() {
+    const box = $("registerBox");
+    box.classList.add("loading");
+    try {
+      rows = await api.overview(groupId);
+    } catch (err) { box.classList.remove("loading"); return fatal(err); }
+    box.classList.remove("loading");
+    const g = groups.find((x) => x.id === groupId);
+    $("groupLabel").textContent = g ? `${g.name} · join code ${g.join_code}` : "Mentor dashboard";
+    if (view === "detail" && currentPid && rows.some((r) => r.participant_id === currentPid)) openDetail(currentPid);
+    else { view = "board"; showOnly("boardView"); renderBoard(); }
+  }
+
+  function fatal(err) {
+    console.error(err);
+    showOnly("boardView");
+    $("stats").replaceChildren();
+    $("registerBox").replaceChildren(emptyState("Couldn't load the reports", (err && err.message ? err.message : String(err)) + " — check your internet and press Refresh."));
+  }
+
+  function emptyState(title, text) {
+    const d = el("div", "empty"); d.append(el("h3", null, title), el("p", null, text)); return d;
+  }
+
+  const groupAvg = () => {
+    const v = rows.map((r) => r.avg7_sec).filter((x) => x != null);
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+  };
+
+  function renderStats() {
+    const total = rows.length;
+    const fresh = rows.filter((r) => syncState(r.last_sync_at).cls === "good").length;
+    const avg = groupAvg();
+    const owls = rows.filter((r) => (r.avg7_night_sec || 0) >= 30 * 60).length;
+    const tiles = [
+      ["Participants", String(total), total ? `${rows.filter((r) => r.id_source !== "drm").length} with a weaker phone ID` : "No one has joined yet"],
+      ["Sent a report in the last 24 h", `${fresh}/${total}`, total - fresh ? `${total - fresh} need a reminder to open the app` : "Everyone is up to date"],
+      ["Group average, last 7 days", avg == null ? "–" : dur(avg), "screen time per day"],
+      ["Late-night users", String(owls), "30 min or more after midnight, on average"],
+    ];
+    $("stats").replaceChildren(...tiles.map(([l, v, n]) => {
+      const t = el("div", "stat"); t.append(el("div", "label", l), el("div", "value", v), el("div", "note", n)); return t;
+    }));
+  }
+
+  function renderBoard() {
+    renderStats();
+    const q = $("search").value.trim().toLowerCase();
+    const sort = $("sort").value;
+    const nDays = Number($("range").value);
+    const days = Array.from({ length: nDays }, (_, i) => addDays(todayIso, i - nDays + 1));
+
+    let list = rows.filter((r) => !q || r.full_name.toLowerCase().includes(q) || r.roll_no.toLowerCase().includes(q));
+    const key = {
+      avg: (r) => -(r.avg7_sec ?? -1), night: (r) => -(r.avg7_night_sec ?? -1), unlocks: (r) => -(r.avg7_unlocks ?? -1),
+      sync: (r) => -syncState(r.last_sync_at).rank, name: () => 0,
+    }[sort];
+    list = list.slice().sort((a, b) => (key(a) - key(b)) || a.full_name.localeCompare(b.full_name));
+
+    const box = $("registerBox");
+    if (!rows.length) {
+      const g = groups.find((x) => x.id === groupId);
+      box.replaceChildren(emptyState("No participants yet", `Share the app and the join code ${g ? g.join_code : ""} with your students. They appear here after registering.`));
+      return;
+    }
+    if (!list.length) { box.replaceChildren(emptyState("No match", "No participant matches that search.")); return; }
+
+    const table = el("table", "register");
+    const thead = el("thead"); const hr = el("tr");
+    const thWho = el("th", "who", "Participant"); hr.appendChild(thWho);
+    for (const d of days) {
+      const th = el("th", "day" + (d === todayIso ? " today" : ""));
+      th.append(el("span", "dow", dow(d).slice(0, 2)), document.createTextNode(String(dayNum(d))));
+      th.title = niceDate(d);
+      hr.appendChild(th);
+    }
+    [["7-day avg", "num first"], ["Unlocks/day", "num"], ["After 12 am", "num"]].forEach(([t, c]) => hr.appendChild(el("th", c, t)));
+    hr.appendChild(el("th", null, "Last report"));
+    thead.appendChild(hr); table.appendChild(thead);
+
+    const tbody = el("tbody");
+    for (const r of list) {
+      const tr = el("tr");
+      tr.addEventListener("click", () => openDetail(r.participant_id));
+      const who = el("td", "who");
+      const b = el("button"); b.type = "button";
+      b.setAttribute("aria-label", `Open report for ${r.full_name}`);
+      b.append(el("span", "name", r.full_name), el("span", "roll", r.roll_no));
+      who.appendChild(b); tr.appendChild(who);
+
+      const byDay = new Map((r.daily || []).map((x) => [x.day, x]));
+      for (const d of days) {
+        const td = el("td", "cell" + (d === todayIso ? " today" : ""));
+        const x = byDay.get(d);
+        const c = el("span", "c" + (x ? " c" + bin(x.sec) : ""), x ? hours1(x.sec) : "–");
+        c.tabIndex = -1;
+        const lines = x ? [`Screen time ${dur(x.sec)}`, `Unlocks ${x.unlocks ?? "–"}`, `After midnight ${dur(x.night || 0)}`] : ["No report for this day"];
+        c.addEventListener("pointerenter", () => showTip(c, `${r.full_name} · ${niceDate(d)}`, lines));
+        c.addEventListener("pointerleave", hideTip);
+        td.appendChild(c); tr.appendChild(td);
+      }
+      tr.appendChild(el("td", "num first", r.avg7_sec == null ? "–" : dur(r.avg7_sec)));
+      tr.appendChild(el("td", "num", r.avg7_unlocks == null ? "–" : String(r.avg7_unlocks)));
+      tr.appendChild(el("td", "num", r.avg7_night_sec == null ? "–" : dur(r.avg7_night_sec)));
+      const s = syncState(r.last_sync_at);
+      const tdS = el("td", "sync"); tdS.appendChild(chip(s.cls, s.text, r.last_sync_at ? new Date(r.last_sync_at).toLocaleString() : "")); tr.appendChild(tdS);
+      tbody.appendChild(tr);
+    }
+    table.appendChild(tbody);
+    box.replaceChildren(table);
+    // On small screens, start scrolled so today's column is in view.
+    const th = table.querySelector("th.day.today");
+    if (th && box.scrollWidth > box.clientWidth) box.scrollLeft = Math.max(0, th.offsetLeft + th.offsetWidth - box.clientWidth + 8);
+  }
+
+  // ---- detail ----
+  let currentPid = null;
+  async function openDetail(pid) {
+    const r = rows.find((x) => x.participant_id === pid);
+    if (!r) return;
+    currentPid = pid; view = "detail";
+    const root = $("detailView");
+    root.replaceChildren(el("p", "muted", "Loading…"));
+    showOnly("detailView");
+    window.scrollTo(0, 0);
+    let days;
+    try { days = await api.days(pid); } catch (err) { root.replaceChildren(emptyState("Couldn't load this report", err.message || String(err))); return; }
+    renderDetail(r, days);
+  }
+
+  function renderDetail(r, days) {
+    const root = $("detailView");
+    const back = el("button", "btn back", "← All participants");
+    back.type = "button";
+    back.addEventListener("click", () => { view = "board"; currentPid = null; showOnly("boardView"); renderBoard(); });
+
+    const head = el("div", "detail-head");
+    const left = el("div");
+    left.append(el("p", "eyebrow", r.roll_no), el("h2", null, r.full_name));
+    const meta = el("div", "meta");
+    const s = syncState(r.last_sync_at);
+    meta.append(chip(s.cls, r.last_sync_at ? "Last report " + s.text : "No report yet"));
+    meta.append(chip(r.id_source === "drm" ? "good" : "warn", r.id_source === "drm" ? "Phone verified" : "Weaker phone ID",
+      r.id_source === "drm" ? "Linked using the phone's hardware DRM id: the same on every user profile." : "This phone has no DRM id, so a second user profile on it could register separately."));
+    meta.append(el("span", null, `${r.device_model || "Unknown phone"} · joined ${new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`));
+    head.append(left, meta);
+
+    // stat tiles from the 30 days
+    const byDay = new Map(days.map((d) => [d.day, d]));
+    const last7 = Array.from({ length: 7 }, (_, i) => byDay.get(addDays(todayIso, i - 6))).filter(Boolean);
+    const avg = (arr, f) => arr.length ? Math.round(arr.reduce((a, x) => a + (f(x) || 0), 0) / arr.length) : null;
+    const t = byDay.get(todayIso);
+    const ga = groupAvg();
+    const a7 = avg(last7, (x) => x.screen_time_sec);
+    const stats = el("div", "stats");
+    const tiles = [
+      ["Today so far", t ? dur(t.screen_time_sec) : "–", t ? `${t.unlocks ?? "–"} unlocks` : "No report yet today"],
+      ["Average, last 7 days", a7 == null ? "–" : dur(a7), ga != null && a7 != null ? `${a7 >= ga ? dur(a7 - ga) + " above" : dur(ga - a7) + " below"} the group` : "per day"],
+      ["Unlocks per day", last7.length ? String(avg(last7, (x) => x.unlocks)) : "–", "average, last 7 days"],
+      ["After midnight", last7.length ? dur(avg(last7, (x) => x.night_sec)) : "–", "average per night, 00:00–05:00"],
+    ];
+    stats.replaceChildren(...tiles.map(([l, v, n]) => { const x = el("div", "stat"); x.append(el("div", "label", l), el("div", "value", v), el("div", "note", n)); return x; }));
+
+    // chart + apps
+    const grid = el("div", "grid-2");
+    const chartPanel = el("section", "panel");
+    chartPanel.append(el("h3", null, "Screen time per day"), el("div", "sub", "Each bar is one day, ending today. The line is the group's 7-day average."));
+    const chartSlot = el("div"); chartPanel.appendChild(chartSlot);
+    const appsPanel = el("section", "panel");
+    appsPanel.append(el("h3", null, "Top apps"), el("div", "sub", "Total over the last 7 days"));
+    appsPanel.appendChild(topApps(last7));
+    grid.append(chartPanel, appsPanel);
+
+    // table view (also the accessible version of the chart)
+    const tablePanel = el("section", "panel");
+    tablePanel.append(el("h3", null, "Day by day"));
+    const tb = el("div", "days-box");
+    const table = el("table", "days");
+    const hrow = el("tr");
+    [["Day", ""], ["Screen time", "n"], ["Unlocks", "n"], ["After midnight", "n"], ["Most used app", ""]].forEach(([h, c]) => hrow.appendChild(el("th", c, h)));
+    const thead = el("thead"); thead.appendChild(hrow); table.appendChild(thead);
+    const tbody = el("tbody");
+    for (const d of days.slice().reverse()) {
+      const tr = el("tr");
+      const top = (d.apps || [])[0];
+      tr.append(el("td", null, niceDate(d.day)), el("td", "n", dur(d.screen_time_sec)), el("td", "n", d.unlocks == null ? "–" : String(d.unlocks)),
+        el("td", "n", dur(d.night_sec)), el("td", null, top ? `${top.name} (${dur(top.sec)})` : "–"));
+      tbody.appendChild(tr);
+    }
+    if (!days.length) { const tr = el("tr"); const td = el("td", null, "No reports yet. Ask the student to open WellShare and tap “Send to mentor now”."); td.colSpan = 5; tr.appendChild(td); tbody.appendChild(tr); }
+    table.appendChild(tbody); tb.appendChild(table); tablePanel.appendChild(tb);
+
+    // reset
+    const dz = el("section", "panel danger-zone");
+    dz.append(el("h3", null, "Reset phone link"),
+      el("div", "sub", "Use this when a student changes phones or registered by mistake. It deletes their reports and frees both the phone and the roll number so they can register again."));
+    const resetBtn = el("button", "btn danger", "Reset phone link…"); resetBtn.type = "button"; resetBtn.style.marginTop = "10px";
+    const confirmBox = el("div", "confirm"); confirmBox.hidden = true;
+    const lbl = el("label", null, `Type ${r.roll_no} to confirm`); lbl.style.fontSize = "14px"; lbl.style.fontWeight = "600";
+    const inp = el("input", "field"); inp.id = "confirmRoll"; inp.autocomplete = "off"; lbl.htmlFor = "confirmRoll";
+    const go = el("button", "btn danger solid", "Delete reports and reset"); go.type = "button"; go.disabled = true;
+    const cancel = el("button", "btn", "Cancel"); cancel.type = "button";
+    const msg = el("div", "sub");
+    const row = el("div", "row"); row.append(go, cancel);
+    confirmBox.append(lbl, inp, row, msg);
+    resetBtn.addEventListener("click", () => { confirmBox.hidden = false; resetBtn.hidden = true; inp.focus(); });
+    cancel.addEventListener("click", () => { confirmBox.hidden = true; resetBtn.hidden = false; inp.value = ""; go.disabled = true; });
+    inp.addEventListener("input", () => { go.disabled = inp.value.trim().toUpperCase() !== r.roll_no.toUpperCase(); });
+    go.addEventListener("click", async () => {
+      go.disabled = true; msg.textContent = "Resetting…";
+      try {
+        await api.remove(r.participant_id);
+        view = "board"; currentPid = null;
+        await loadOverview();
+      } catch (err) { msg.textContent = "Couldn't reset: " + (err.message || err); go.disabled = false; }
+    });
+    dz.append(resetBtn, confirmBox);
+
+    root.replaceChildren(back, head, stats, grid, tablePanel, dz);
+    const draw = () => chartSlot.replaceChildren(dailyChart(byDay, ga, chartSlot.clientWidth));
+    draw();
+    redrawChart = draw;
+  }
+  let redrawChart = null, resizeTimer = 0;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (view === "detail" && redrawChart) redrawChart(); }, 150); });
+
+  function dailyChart(byDay, groupAvgSec, width) {
+    const W = Math.max(280, Math.round(width || 640));
+    const N = W < 460 ? 14 : 30, H = W < 460 ? 190 : 220, L = 34, R = 8, T = 14, B = 26;
+    const days = Array.from({ length: N }, (_, i) => addDays(todayIso, i - N + 1));
+    const vals = days.map((d) => byDay.get(d)?.screen_time_sec ?? null);
+    const maxH = Math.max(4, Math.ceil(Math.max(...vals.map((v) => (v || 0) / 3600), (groupAvgSec || 0) / 3600) / 2) * 2);
+    const y = (sec) => T + (H - T - B) * (1 - sec / 3600 / maxH);
+    const slot = (W - L - R) / N;
+    const bw = Math.min(14, slot - 2);
+    const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "chart", role: "img", "aria-label": `Screen time per day, last ${N} days` });
+    const step = maxH <= 6 ? 1 : 2;
+    for (let h = 0; h <= maxH; h += step) {
+      const yy = y(h * 3600);
+      s.appendChild(svg("line", { x1: L, x2: W - R, y1: yy, y2: yy, class: h === 0 ? "base" : "grid" }));
+      const tx = svg("text", { x: L - 6, y: yy + 3.5, "text-anchor": "end" }); tx.textContent = h + "h"; s.appendChild(tx);
+    }
+    days.forEach((d, i) => {
+      const x = L + slot * i + (slot - bw) / 2;
+      const v = vals[i];
+      if (v != null && v > 0) {
+        const top = y(v), base = y(0), hgt = Math.max(1, base - top), rr = Math.min(4, hgt, bw / 2);
+        const path = `M${x},${base} V${top + rr} Q${x},${top} ${x + rr},${top} H${x + bw - rr} Q${x + bw},${top} ${x + bw},${top + rr} V${base} Z`;
+        const hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, class: "hit" });
+        const bar = svg("path", { d: path, class: "bar" + (d === todayIso ? " today" : "") });
+        const rec = byDay.get(d);
+        hit.addEventListener("pointerenter", () => showTip(bar, niceDate(d), [`Screen time ${dur(v)}`, `Unlocks ${rec.unlocks ?? "–"}`, `After midnight ${dur(rec.night_sec)}`]));
+        hit.addEventListener("pointerleave", hideTip);
+        s.append(hit, bar);
+      }
+      if ((N - 1 - i) % (N > 14 ? 5 : 3) === 0) {
+        const tx = svg("text", { x: L + slot * i + slot / 2, y: H - 8, "text-anchor": "middle" });
+        tx.textContent = d === todayIso ? "Today" : new Date(d + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+        s.appendChild(tx);
+      }
+    });
+    if (groupAvgSec) {
+      const yy = y(groupAvgSec);
+      s.appendChild(svg("line", { x1: L, x2: W - R, y1: yy, y2: yy, class: "ref" }));
+      const lab = svg("text", { x: L + 6, y: yy - 6, class: "ref-label" }); lab.textContent = `Group ${dur(groupAvgSec)}`; s.appendChild(lab);
+    }
+    return s;
+  }
+
+  function topApps(last7) {
+    const tot = new Map();
+    for (const d of last7) for (const a of d.apps || []) {
+      const k = a.pkg || a.name; const cur = tot.get(k) || { name: a.name, sec: 0 }; cur.sec += a.sec || 0; tot.set(k, cur);
+    }
+    const list = [...tot.values()].sort((a, b) => b.sec - a.sec).slice(0, 8);
+    if (!list.length) return el("p", "muted", "No app data in the last 7 days.");
+    const max = list[0].sec || 1;
+    const ul = el("ul", "apps");
+    for (const a of list) {
+      const li = el("li");
+      const track = el("div", "track"); const fill = el("div", "fill"); fill.style.width = Math.max(2, (a.sec / max) * 100) + "%"; track.appendChild(fill);
+      li.append(el("span", "an", a.name), el("span", "av", `${dur(a.sec)} · ${dur(Math.round(a.sec / Math.max(1, last7.length)))}/day`), track);
+      ul.appendChild(li);
+    }
+    return ul;
+  }
+
+  function downloadCsv() {
+    const header = ["name", "roll_no", "day", "screen_time_min", "unlocks", "after_midnight_min"];
+    const lines = [header.join(",")];
+    const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
+    for (const r of rows) for (const d of r.daily || []) {
+      lines.push([q(r.full_name), q(r.roll_no), d.day, Math.round(d.sec / 60), d.unlocks ?? "", Math.round((d.night || 0) / 60)].join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = `wellshare-${todayIso}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  // ---- demo data (made-up students, generated the same way every time) ----
+  const DEMO = (() => {
+    let seed = 20261014;
+    const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    const APPS = [
+      ["com.instagram.android", "Instagram"], ["com.google.android.youtube", "YouTube"], ["com.whatsapp", "WhatsApp"],
+      ["com.android.chrome", "Chrome"], ["com.pubg.imobile", "BGMI"], ["com.snapchat.android", "Snapchat"],
+      ["com.spotify.music", "Spotify"], ["org.telegram.messenger", "Telegram"], ["com.netflix.mediaclient", "Netflix"],
+      ["com.google.android.apps.classroom", "Google Classroom"], ["com.google.android.apps.maps", "Maps"], ["com.linkedin.android", "LinkedIn"],
+    ];
+    const people = [
+      ["Aarav Sharma", "CS24-011", 5.4, 0.9, [1, 0, 4, 2]], ["Ishita Rao", "CS24-014", 3.1, 0.2, [0, 2, 6, 9]],
+      ["Kabir Menon", "CS24-019", 7.6, 1.6, [4, 1, 7, 0]], ["Meera Iyer", "CS24-023", 2.4, 0.1, [2, 9, 3, 6]],
+      ["Rohan Das", "CS24-027", 4.6, 0.7, [1, 8, 0, 2]], ["Sana Qureshi", "CS24-031", 3.8, 0.4, [0, 5, 2, 7]],
+      ["Tanvi Kulkarni", "CS24-034", 6.2, 1.2, [0, 1, 5, 8]], ["Vikram Singh", "CS24-038", 4.1, 0.3, [3, 1, 2, 11]],
+      ["Ananya Bose", "CS24-042", 2.9, 0.2, [2, 9, 0, 3]], ["Dev Patel", "CS24-045", 5.0, 0.8, [4, 1, 2, 7]],
+      ["Nikhil Joshi", "CS24-049", 3.4, 0.3, [1, 2, 3, 10]], ["Priya Nair", "CS24-052", 4.4, 0.5, [0, 5, 1, 2]],
+    ];
+    const now = Date.now();
+    const parts = people.map(([name, roll, base, night, fav], idx) => {
+      const pid = "demo-" + idx;
+      const joinedDaysAgo = idx === 11 ? 4 : 30;
+      const lastSyncHours = idx === 7 ? 50 : idx === 9 ? 130 : 0.3 + rnd() * 5;
+      const stopDaysAgo = idx === 9 ? 5 : idx === 7 ? 2 : 0;
+      const days = [];
+      for (let i = 29; i >= 0; i--) {
+        if (i >= joinedDaysAgo || i < stopDaysAgo) continue;
+        const day = addDays(todayIso, -i);
+        const wk = new Date(day + "T00:00:00").getDay();
+        const weekend = wk === 0 || wk === 6 ? 1.25 : 1;
+        const exam = i >= 8 && i <= 12 ? 0.75 : 1; // a lighter exam week
+        let hrs = Math.max(0.6, base * weekend * exam * (0.75 + rnd() * 0.5));
+        if (i === 0) hrs *= 0.62; // today is not over yet
+        const sec = Math.round(hrs * 3600);
+        const nightSec = Math.round(Math.min(sec * 0.35, night * 3600 * (0.4 + rnd() * 1.2) * (i === 0 ? 1 : 1)));
+        const weights = APPS.map((_, k) => (fav.includes(k) ? 6 - fav.indexOf(k) : 0.35) * (0.6 + rnd() * 0.8));
+        const wsum = weights.reduce((a, b) => a + b, 0);
+        const apps = APPS.map(([pkg, nm], k) => ({ pkg, name: nm, sec: Math.round(sec * weights[k] / wsum), opens: Math.round(2 + rnd() * 30) }))
+          .sort((a, b) => b.sec - a.sec).slice(0, 10);
+        days.push({ participant_id: pid, day, screen_time_sec: sec, unlocks: Math.round(45 + base * 12 * (0.7 + rnd() * 0.6) * (i === 0 ? 0.6 : 1)), night_sec: nightSec, apps });
+      }
+      return {
+        row: {
+          participant_id: pid, full_name: name, roll_no: roll,
+          device_model: ["Redmi Note 13", "Samsung Galaxy M34", "Realme 12 Pro", "OnePlus Nord CE 4", "Vivo T3", "Poco X6", "Motorola G85", "Samsung Galaxy A35"][idx % 8],
+          id_source: idx === 5 ? "android_id" : "drm",
+          created_at: new Date(now - joinedDaysAgo * 864e5).toISOString(),
+          last_sync_at: new Date(now - lastSyncHours * 3.6e6).toISOString(),
+        },
+        days,
+      };
+    });
+    const summarize = (p) => {
+      const inRange = (d, n) => d.day > addDays(todayIso, -n) && d.day <= todayIso;
+      const last7 = p.days.filter((d) => inRange(d, 7));
+      const avg = (f) => last7.length ? Math.round(last7.reduce((a, d) => a + (f(d) || 0), 0) / last7.length) : null;
+      return {
+        ...p.row,
+        days_reported: p.days.filter((d) => inRange(d, 14)).length,
+        today_sec: p.days.find((d) => d.day === todayIso)?.screen_time_sec ?? null,
+        avg7_sec: avg((d) => d.screen_time_sec), avg7_unlocks: avg((d) => d.unlocks), avg7_night_sec: avg((d) => d.night_sec),
+        daily: p.days.map((d) => ({ day: d.day, sec: d.screen_time_sec, unlocks: d.unlocks, night: d.night_sec })),
+      };
+    };
+    let live = parts.slice();
+    return {
+      groups: [{ id: "demo-group", name: "Boys Hostel · Block A", join_code: "BLOCKA25" }],
+      overview: async () => live.map(summarize).sort((a, b) => a.full_name.localeCompare(b.full_name)),
+      days: async (pid) => (live.find((p) => p.row.participant_id === pid)?.days || []).slice(),
+      remove: (pid) => { live = live.filter((p) => p.row.participant_id !== pid); },
+    };
+  })();
+
+  if (window.innerWidth < 600) $("range").value = "7";
+  start().catch(fatal);
+})();
+</script>

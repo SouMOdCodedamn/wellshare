@@ -1,0 +1,23 @@
+# Android / Gradle
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/*.jar
+*.apk
+*.aab
+
+# Signing keys: NEVER commit these
+*.jks
+*.keystore
+*.jks.txt
+
+# Node
+node_modules/
+
+# Editors / OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
