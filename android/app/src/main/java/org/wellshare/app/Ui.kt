@@ -30,6 +30,9 @@ class Ui(private val ctx: Context) {
     val track = if (dark) 0xFF2C332E.toInt() else 0xFFE7EAE6.toInt()
     val warn = if (dark) 0xFFF2B36B.toInt() else 0xFF9A5B13.toInt()
     val error = if (dark) 0xFFFF9A8F.toInt() else 0xFFB3261E.toInt()
+    val sos = if (dark) 0xFFE5534B.toInt() else 0xFFC62828.toInt()
+    val onSos = 0xFFFFFFFF.toInt()
+    val warnBg = if (dark) 0xFF3A2E1C.toInt() else 0xFFFFF1DC.toInt()
 
     fun dp(v: Int): Int = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), ctx.resources.displayMetrics).toInt()
 
@@ -74,6 +77,32 @@ class Ui(private val ctx: Context) {
         setOnClickListener { onClick() }
     }
 
+    /** Big red button for SOS. */
+    fun sosButton(s: String, onClick: () -> Unit) = Button(ctx).apply {
+        text = s
+        isAllCaps = false
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        setTextColor(onSos)
+        background = GradientDrawable().apply { cornerRadius = dp(32).toFloat(); setColor(sos) }
+        minHeight = dp(64)
+        stateListAnimator = null
+        setOnClickListener { onClick() }
+    }
+
+    /** A warning strip with an optional action. */
+    fun banner(text: String, action: String? = null, onClick: (() -> Unit)? = null): LinearLayout = column(14).apply {
+        background = GradientDrawable().apply { setColor(warnBg); cornerRadius = dp(14).toFloat() }
+        addView(label(text, 14f, ink).apply { setLineSpacing(0f, 1.2f) })
+        if (action != null && onClick != null) {
+            addView(gap(8))
+            addView(label(action, 14f, warn, bold = true).apply {
+                setPadding(0, dp(4), 0, dp(4))
+                setOnClickListener { onClick() }
+            })
+        }
+    }
+
     fun input(hint: String, caps: Boolean = false) = EditText(ctx).apply {
         this.hint = hint
         setTextColor(ink)
@@ -93,13 +122,13 @@ class Ui(private val ctx: Context) {
     fun fullWidth() = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
 
     /** A thin horizontal progress bar, value 0..1 */
-    fun meter(fraction: Float): View = object : View(ctx) {
+    fun meter(fraction: Float, color: Int = accent): View = object : View(ctx) {
         private val p = Paint(Paint.ANTI_ALIAS_FLAG)
         override fun onDraw(c: Canvas) {
             val r = height / 2f
             p.color = track
             c.drawRoundRect(RectF(0f, 0f, width.toFloat(), height.toFloat()), r, r, p)
-            p.color = accent
+            p.color = color
             val w = (width * fraction.coerceIn(0f, 1f)).coerceAtLeast(height.toFloat())
             c.drawRoundRect(RectF(0f, 0f, w, height.toFloat()), r, r, p)
         }

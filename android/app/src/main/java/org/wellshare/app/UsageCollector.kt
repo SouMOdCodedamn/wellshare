@@ -36,7 +36,7 @@ object UsageCollector {
     }
 
     /** Returns one entry per day, oldest first, ending with today. */
-    fun collect(context: Context, days: Int): List<DayUsage> {
+    fun collect(context: Context, days: Int, withLabels: Boolean = true): List<DayUsage> {
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val firstDay = today.minusDays((days - 1).toLong())
@@ -63,8 +63,20 @@ object UsageCollector {
             screenOnNow = pm.isInteractive,
             ignored = ignoredPackages(context),
             unlocksSupported = Build.VERSION.SDK_INT >= 28,
-            label = { pkg -> labels.getOrPut(pkg) { label(context, pkg) } },
+            label = { pkg -> if (withLabels) labels.getOrPut(pkg) { label(context, pkg) } else pkg },
         )
+    }
+
+    /** Seconds this app has been on screen today (the same number the dashboard shows). */
+    fun todaySeconds(context: Context, pkg: String): Long =
+        collect(context, 1, withLabels = false).lastOrNull()?.apps?.firstOrNull { it.pkg == pkg }?.sec ?: 0L
+
+    fun label(context: Context, pkg: String): String = try {
+        val pm = context.packageManager
+        @Suppress("DEPRECATION")
+        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+    } catch (_: Exception) {
+        pkg
     }
 
     /** Home-screen launchers and system UI are not "apps you used" (Digital Wellbeing skips them too). */
@@ -79,11 +91,4 @@ object UsageCollector {
         return set
     }
 
-    private fun label(context: Context, pkg: String): String = try {
-        val pm = context.packageManager
-        @Suppress("DEPRECATION")
-        pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
-    } catch (_: Exception) {
-        pkg
-    }
 }

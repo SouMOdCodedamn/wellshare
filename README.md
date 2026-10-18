@@ -3,12 +3,17 @@
 **Share your phone's Digital Wellbeing report with your mentor.**
 An open-source Android app plus a mentor dashboard, built for hostels where everyone is on the same Wi-Fi.
 
-- Each student's phone sends its daily screen time, unlocks, after-midnight use and top apps.
-- The mentor sees one dashboard for the whole group, and a detailed report for every participant.
+- Each student's phone sends its daily screen time, unlocks, after-midnight use, top apps and top websites, **every hour**.
+- The mentor sees one dashboard for the whole group, and a detailed report for every participant, day by day.
+- **App timers:** mentors set daily limits on apps (for one student or the whole group). When a limit runs out, the app closes until midnight.
+- **SOS button:** calls the mentor and sends an alert with the student's location, shown at the top of the dashboard.
+- **Alerts:** the dashboard flags students who stop reporting (app uninstalled, phone off), turn off permissions or stop sharing.
 - **One phone = one participant.** A phone can't register a second student, not even from a second user profile, a work profile or after reinstalling. A roll number can't be registered on a second phone.
 - Free to run: GitHub (code, app downloads, dashboard hosting) + Supabase free tier (database).
 
-![Mentor dashboard with demo data](docs/dashboard-demo.png)
+![Mentor dashboard with demo data: an SOS alert, students needing attention, and the group register](docs/dashboard-demo.png)
+
+![One student: daily chart, each day's top 5 apps and websites, and app timers](docs/student-detail.png)
 
 ---
 
@@ -16,12 +21,12 @@ An open-source Android app plus a mentor dashboard, built for hostels where ever
 
 ```
  Student's phone                    Supabase (database)                  Mentor
- ┌──────────────────┐   every ~4 h  ┌─────────────────────────┐  sign in  ┌──────────────────────┐
+ ┌──────────────────┐  every hour   ┌─────────────────────────┐  sign in  ┌──────────────────────┐
  │ WellShare app    │ ────────────▶ │ register_device()       │ ◀──────── │ Dashboard on         │
- │ reads Android's  │   7 days of   │ upload_usage()          │           │ GitHub Pages         │
- │ usage log (same  │   totals      │ Row Level Security:     │           │ - group register     │
- │ data as Digital  │               │ mentors read only their │           │ - per-student report │
- │ Wellbeing)       │               │ own group               │           │ - reset phone link   │
+ │ - usage log      │  7 days of    │ upload_usage()          │           │ GitHub Pages         │
+ │ - site names     │  totals       │ send_sos()              │           │ - SOS + alerts       │
+ │ - app timers  ◀──┼───────────────┤ timers + SOS number     │ ◀──────── │ - group register     │
+ │ - SOS button     │  (in reply)   │ Row Level Security      │  timers   │ - per-student report │
  └──────────────────┘               └─────────────────────────┘           └──────────────────────┘
 ```
 
@@ -35,7 +40,8 @@ An open-source Android app plus a mentor dashboard, built for hostels where ever
 | One participant → one phone | `(group, roll_no)` is unique |
 | Reinstall on the same phone | Re-links the same student; history is kept |
 | Upload token copied to another phone | Rejected (`DEVICE_MISMATCH`) |
-| Phones can't read anyone's data | Phones may only call two functions |
+| Phones can't read anyone's data | Phones may only call their own functions (register, upload, SOS) |
+| Mentors change only their own group | Timers, SOS number and SOS "handled" go through functions that check the group |
 | Mentor sees only their group | Row Level Security policies |
 | Random people signing up | They see nothing (they aren't in the `mentors` table) |
 
@@ -56,7 +62,8 @@ An open-source Android app plus a mentor dashboard, built for hostels where ever
 
 1. Sign in to Supabase → **New project**. Pick a name (e.g. `wellshare`), set a database password (save it), and choose the region closest to you (e.g. **Mumbai**).
 2. Wait until the project is ready, then open **SQL Editor** → **New query**.
-3. Open [`supabase/schema.sql`](supabase/schema.sql) from this repo, copy **all** of it, paste it into the editor and press **Run**. You should see "Success. No rows returned".
+3. Open [`supabase/schema.sql`](supabase/schema.sql) from this repo, copy **all** of its contents (not the file name), paste it into the editor and press **Run**. You should see "Success. No rows returned".
+   - **Updating from an earlier version?** Just paste and run the newest `schema.sql` again. It upgrades the database in place and keeps all students and reports.
 4. Recommended: **Authentication → Sign In / Providers** → turn **off** "Allow new users to sign up". Only the admin then creates mentor logins.
 
 ### Step 2 — Create the mentor login and the group
@@ -129,19 +136,24 @@ On each student's phone:
 2. Open WellShare and read what's shared → tick the box → **Continue**.
 3. **Open usage access settings** → tap **WellShare** → turn on **Permit usage access**.
    - **Switch greyed out / "Restricted setting"?** (Android 13+ does this for downloaded apps.) Go to **Settings → Apps → WellShare → ⋮ → Allow restricted settings**, then try again. The app shows these steps too.
-4. Enter the **group code**, **full name** and **roll number** → **Register this phone**.
-5. On Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus phones: **Settings → Apps → WellShare → Battery → No restrictions / Unrestricted**, so updates keep arriving in the background.
+4. **Open Accessibility settings** → **Installed apps** (or **Downloaded apps**) → **WellShare** → turn on **Use WellShare** → **Allow**. This powers app timers and website names. Same "restricted setting" fix as above if it's greyed out.
+5. Enter the **group code**, **full name** and **roll number** → **Register this phone**.
+6. **Set up SOS** → **Allow** (calls, location only when SOS is pressed, notifications).
+7. On Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus phones: **Settings → Apps → WellShare → Battery → No restrictions / Unrestricted**, so updates keep arriving in the background.
 
-That's it. The phone sends the last 7 days right away and then about every 4 hours when online.
+That's it. The phone sends the last 7 days right away and then about every hour when online.
 
 ---
 
 ## Using the dashboard (mentors)
 
-- **Register view:** one row per student, one column per day. Darker cells mean more hours. "–" means no report that day.
-- **Last report** chip: ✓ green = within 24 h, ⚠ yellow = 1–3 days, ✕ red = longer or never. Remind those students to open the app.
+- **SOS:** a red bar at the top of every screen shows new SOS alerts with a Google Maps link to the student's location. Click **Mark as handled** once you've responded; the student's phone then shows "Your mentor has seen your alert". The dashboard checks for new alerts every minute while it's open, and the browser tab title shows **(1) SOS**.
+- **Needs attention:** students with no report for 12+ hours (app uninstalled, phone off or offline), who stopped sharing, or who turned off usage access or Accessibility.
+- **Register view:** one row per student, one column per day (7, 14 or 30 days). Darker cells mean more hours. "–" means no report that day.
+- **Last report** chip: ✓ green = within 2 h, ⚠ yellow = up to 12 h, ✕ red = longer or never.
 - **Late-night users:** students averaging 30+ minutes between 00:00 and 05:00.
-- Tap a student for their 30-day chart, top apps, a day-by-day table, and **Reset phone link** (use it when they change phones; it deletes their reports and frees the phone and roll number).
+- **Group settings** (below the register): the **SOS phone number** the SOS button calls, and **app timers for the whole group**.
+- Tap a student for: their 30-day chart, **each day's top 5 apps and top 5 websites** (tap a day or a bar), **app timers** just for them, their SOS history, a day-by-day table, and **Reset phone link**.
 - **Download CSV** exports the daily numbers for everyone.
 
 Use the numbers to start a conversation. One heavy day is normal; patterns over weeks matter more.
@@ -187,7 +199,11 @@ Change the code, push, then publish a new release with a higher tag (`v1.0.1`, `
 | "This phone is already registered to another student" | Working as intended. If it's a mistake, the mentor uses **Reset phone link** on the wrong entry. |
 | "This roll number is already linked to a different phone" | Student changed phones: mentor resets the old link, student registers again. |
 | "You aren't a mentor of any group yet" | Run `setup_group(...)` with that mentor's exact email. |
-| Student shows red "Never sent" / old date | Open the app and tap **Send to mentor now**; check usage access and battery settings; log in to the hostel Wi-Fi portal if it has one. |
+| Student shows red "Never sent" / old date | Open the app and tap **Sync now**; check usage access and battery settings; log in to the hostel Wi-Fi portal if it has one. |
+| App timer doesn't close the app | The student's Accessibility switch for WellShare is off (the dashboard shows "Timers off"), or the phone hasn't synced since the timer was set (wait up to an hour, or tap **Sync now**). |
+| No websites for a student | Accessibility is off, or they use a browser WellShare doesn't read (Firefox, Opera). Chrome, Brave, Edge and Samsung Internet are supported. |
+| SOS button only opens the dialer | The student skipped the call permission. They can allow it in **Settings → Apps → WellShare → Permissions**. |
+| SOS shows "Location not shared" | Location permission is off or the phone's location is turned off. |
 | Can't install update ("App not installed") | The new APK was signed with a different key. Uninstall, reinstall, register again with the same roll number (history is kept). Then set up a permanent key. |
 | Supabase project paused | Free projects pause after a period with no activity. Daily phone uploads normally keep it awake; you can resume it from the Supabase dashboard. |
 
@@ -197,7 +213,10 @@ Change the code, push, then publish a new release with a higher tag (`v1.0.1`, `
 - The app reads the usage of the **profile it's installed in**. A second profile on the same phone can't register as another student, but time spent *only* in another profile isn't counted.
 - Numbers can differ a little from Digital Wellbeing, because each counts screen-on time slightly differently.
 - Android keeps roughly 1–2 weeks of usage history, so a phone that is offline for longer loses the oldest days.
-- A student can always uninstall the app or turn usage access off. The dashboard shows that as an old "Last report".
+- A student can always uninstall the app or turn permissions off. Android doesn't tell an app it's being uninstalled, so the dashboard detects it as **no report for 12+ hours** (the same signal as a phone that is off or offline).
+- App timers can be avoided by turning off Accessibility; the dashboard shows that immediately at the next sync. Calls, messages, Settings and the home screen are never blocked.
+- Website names are read from the address bar of Chrome, Brave, Edge and Samsung Internet only. Only the site name is kept (e.g. `youtube.com`), never full addresses or searches. Incognito tabs are included.
+- Android may delay hourly syncs while the phone is idle overnight, so short gaps at night are normal.
 - Phones on Android 8 don't report unlock counts (shown as "–").
 - A few phones without a Widevine DRM module fall back to Android's per-profile ID. The dashboard marks these as **Weaker phone ID**.
 
@@ -210,16 +229,22 @@ Tell participants exactly what is collected before they join. [`PRIVACY.md`](PRI
 ```
 android/               Android app (Kotlin, no third-party libraries)
   app/src/main/java/org/wellshare/app/
-    MainActivity.kt    Consent → usage access → register → "Your digital wellbeing" screen
+    MainActivity.kt    Consent → usage access → Accessibility → register → SOS setup → home screen + SOS
+    Watcher.kt         Accessibility service: website names + app timers (+ list of apps never blocked)
+    BlockActivity.kt   "Time's up" screen
     UsageCollector.kt  Reads Android's usage event log
     UsageMath.kt       Turns events into daily totals (pure Kotlin, unit-tested)
+    SiteMath.kt        Address bar text → site name (pure Kotlin, unit-tested)
+    SitesStore.kt      Seconds per website per day, kept on the phone for 10 days
+    Sos.kt             Location (only when SOS is pressed) and calling
+    Notify.kt          "Sharing with your mentor" notification with an SOS button
     DeviceId.kt        One stable, hashed ID per physical phone
-    Api.kt             Calls register_device / upload_usage
-    Sync.kt            Background upload every ~4 h (JobScheduler)
-  app/src/test/...     Screen-time math tests
+    Api.kt             Calls the phone's database functions
+    Sync.kt            Background upload every hour (JobScheduler)
+  app/src/test/...     Screen-time and website-name tests
 dashboard/index.html   Mentor dashboard (single file, works on GitHub Pages)
 supabase/schema.sql    Tables, security rules and functions
-supabase/test/         Database rule tests (in-memory Postgres, no account needed)
+supabase/test/         Database rule tests incl. upgrade from v1 (in-memory Postgres, no account needed)
 .github/workflows/     Build APK on release · deploy dashboard · run tests
 ```
 
@@ -229,10 +254,12 @@ supabase/test/         Database rule tests (in-memory Postgres, no account neede
 # Database rules (needs Node.js 18+)
 cd supabase/test && npm install && npm test
 
-# Screen-time math (needs a JDK and kotlinc)
+# Screen-time math and website names (needs a JDK and kotlinc)
 cd android
 kotlinc app/src/main/java/org/wellshare/app/UsageMath.kt app/src/test/java/org/wellshare/app/UsageMathTest.kt -include-runtime -d t.jar
 java -cp t.jar org.wellshare.app.UsageMathTestKt
+kotlinc app/src/main/java/org/wellshare/app/SiteMath.kt app/src/test/java/org/wellshare/app/SiteMathTest.kt -include-runtime -d s.jar
+java -cp s.jar org.wellshare.app.SiteMathTestKt
 ```
 
 Both also run automatically on every push (the **Tests** workflow).

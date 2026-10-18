@@ -130,5 +130,154 @@ ok((await db.query(`select * from participants`)).rows.length === 0, 'random sig
 await asRole('anon');
 await expectError(`select * from mentor_overview($1, current_date, 14)`, [g[0].id], 'permission denied', 'anon cannot call mentor functions');
 
+
+// ===================== v2: timers, websites, SOS, status =====================
+const M1 = '11111111-1111-1111-1111-111111111111', M2 = '22222222-2222-2222-2222-222222222222';
+const groupA = g[0].id, groupB = otherGroup;
+const up2 = (tok, dev, days, status) => db.query(`select public.upload_usage($1,$2,$3::jsonb,'2.0',$4::jsonb) as r`,
+  [tok, dev, JSON.stringify(days), status ? JSON.stringify(status) : null]).then(x => x.rows[0].r);
+
+console.log('v2: old app versions keep working');
+await asRole('anon');
+let r1 = (await db.query(`select public.upload_usage(p_token => $1, p_device_hash => $2, p_days => $3::jsonb, p_app_version => '1.0') as r`,
+  [a2.token, DEV_A, JSON.stringify([{ day: today, screen_time_sec: 86400, apps: [] }])])).rows[0].r;
+ok(r1.saved === 1 && Array.isArray(r1.limits), 'v0.1 style upload (4 named args) still accepted');
+
+console.log('v2: SOS phone number');
+await asRole('authenticated', M1);
+let sp = (await db.query(`select public.mentor_set_sos_phone($1, $2) as r`, [groupA, '+91 98765-43210'])).rows[0].r;
+ok(sp.sos_phone === '+919876543210', 'mentor sets SOS number (spaces/dashes removed): ' + sp.sos_phone);
+await expectError(`select public.mentor_set_sos_phone($1, 'call me')`, [groupA], 'BAD_PHONE', 'nonsense number rejected');
+await expectError(`select public.mentor_set_sos_phone($1, '12')`, [groupA], 'BAD_PHONE', 'too-short number rejected');
+ok((await db.query(`select public.mentor_set_sos_phone($1, '+91 98765-43210') as r`, [groupA])).rows[0].r.sos_phone === '+919876543210', 'number unchanged after rejected attempts');
+await expectError(`select public.mentor_set_sos_phone($1, '+911234567')`, [groupB], 'NOT_ALLOWED', 'mentor cannot set another group\'s number');
+await expectError(`update groups set sos_phone = '1'`, [], 'permission denied', 'mentor cannot edit groups directly');
+
+console.log('v2: app timers');
+const setLim = (grp, pid, pkg, name, min) => db.query(`select public.mentor_set_limit($1,$2,$3,$4,$5) as id`, [grp, pid, pkg, name, min]).then(x => x.rows[0].id);
+const gLim = await setLim(groupA, null, 'com.instagram.android', 'Instagram', 60);
+await setLim(groupA, null, 'com.google.android.youtube', 'YouTube', 90);
+const pLim = await setLim(groupA, a2.participant_id, 'com.instagram.android', 'Instagram', 30);
+const gLim2 = await setLim(groupA, null, 'com.instagram.android', 'Instagram', 45);
+ok(gLim2 === gLim, 'changing a group timer updates it instead of duplicating');
+await expectError(`select public.mentor_set_limit($1,null,'not a package','X',10)`, [groupA], 'BAD_APP', 'invalid app id rejected');
+await expectError(`select public.mentor_set_limit($1,null,'com.x.y','X',0)`, [groupA], 'BAD_MINUTES', '0 minutes rejected');
+await expectError(`select public.mentor_set_limit($1,null,'com.x.y','X',2000)`, [groupA], 'BAD_MINUTES', 'more than 24 h rejected');
+await expectError(`select public.mentor_set_limit($1,null,'com.x.y','X',10)`, [groupB], 'NOT_ALLOWED', 'cannot set timer for another group');
+await expectError(`select public.mentor_set_limit($1,$2,'com.x.y','X',10)`, [groupA, c1.participant_id], 'NOT_ALLOWED', 'cannot set timer on a student from another group');
+await expectError(`insert into app_limits(group_id,pkg,minutes) values ($1,'com.a.b',5)`, [groupA], 'permission denied', 'mentor cannot insert timers directly');
+ok((await db.query(`select count(*)::int n from app_limits`)).rows[0].n === 3, 'mentor reads own group timers (3)');
+await asRole('authenticated', M2);
+ok((await db.query(`select count(*)::int n from app_limits`)).rows[0].n === 0, 'other mentor sees none of them');
+await expectError(`select public.mentor_remove_limit($1)`, [pLim], 'NOT_ALLOWED', 'other mentor cannot remove a timer');
+
+await asRole('anon');
+let ra = await up2(a2.token, DEV_A, [], { usage_access: true, watcher: true, notifications: false });
+const lim = Object.fromEntries(ra.limits.map(l => [l.pkg, l.minutes]));
+ok(lim['com.instagram.android'] === 30 && lim['com.google.android.youtube'] === 90 && ra.limits.length === 2,
+   'phone gets merged timers: personal 30 beats group 45; group YouTube 90');
+ok(ra.sos_phone === '+919876543210' && ra.group_name === 'Block A', 'phone gets SOS number and group name');
+let rb = await up2(b2.token, DEV_B, [], null);
+ok(rb.limits.find(l => l.pkg === 'com.instagram.android').minutes === 45, 'other student gets the group timer (45)');
+let rc = await up2(c1.token, DEV_C, [], null);
+ok(rc.limits.length === 0 && rc.sos_phone === null, 'student in another group gets no timers / number');
+await asRole('authenticated', M1);
+await db.query(`select public.mentor_remove_limit($1)`, [pLim]);
+await asRole('anon');
+ra = await up2(a2.token, DEV_A, [], null);
+ok(ra.limits.find(l => l.pkg === 'com.instagram.android').minutes === 45, 'after removing personal timer, group timer applies');
+
+console.log('v2: websites');
+const sites = Array.from({ length: 14 }, (_, i) => ({ domain: (i === 0 ? 'YouTube.com' : `site${i}.example`), sec: 1000 - i }));
+await up2(a2.token, DEV_A, [{ day: yday, screen_time_sec: 20000, apps: [], sites }], null);
+await asOwner();
+let row = (await db.query(`select sites from daily_usage where participant_id=$1 and day=$2`, [a2.participant_id, yday])).rows[0];
+ok(row.sites.length === 10 && row.sites[0].domain === 'youtube.com', 'sites stored: top 10, lowercased');
+await asRole('anon');
+await up2(a2.token, DEV_A, [{ day: yday, screen_time_sec: 20001, apps: [] }], null);
+await asOwner();
+row = (await db.query(`select sites from daily_usage where participant_id=$1 and day=$2`, [a2.participant_id, yday])).rows[0];
+ok(row.sites.length === 10, 'an upload without websites keeps the websites already saved');
+
+console.log('v2: status + stop sharing');
+await asRole('anon');
+await up2(a2.token, DEV_A, [], { usage_access: true, watcher: false, notifications: true });
+await db.query(`select public.report_stopped($1,$2)`, [b2.token, DEV_B]);
+await expectError(`select public.report_stopped($1,$2)`, [b2.token, DEV_A], 'DEVICE_MISMATCH', 'stop report must come from the same phone');
+await asRole('authenticated', M1);
+let ovA = Object.fromEntries((await db.query(`select * from mentor_overview($1, current_date, 30)`, [groupA])).rows.map(x => [x.roll_no, x]));
+ok(ovA.CS101.watcher_on === false && ovA.CS101.usage_access_on === true && ovA.CS101.notifications_on === true, 'overview shows phone status (timers/websites off)');
+ok(ovA.CS102.stopped_at !== null, 'overview shows that a student stopped sharing');
+await asRole('anon');
+await up2(b2.token, DEV_B, [], null);
+await asRole('authenticated', M1);
+ovA = Object.fromEntries((await db.query(`select * from mentor_overview($1, current_date, 30)`, [groupA])).rows.map(x => [x.roll_no, x]));
+ok(ovA.CS102.stopped_at === null, 'a later upload clears "stopped"');
+
+console.log('v2: SOS');
+await asRole('anon');
+const sos1 = (await db.query(`select public.send_sos($1,$2,$3,$4,$5,$6) as r`, [a2.token, DEV_A, 12.9716, 77.5946, 25, 30])).rows[0].r;
+ok(sos1.sos_id && sos1.sos_phone === '+919876543210', 'SOS sent with location; phone gets the number to call');
+const sos2 = (await db.query(`select public.send_sos($1,$2) as r`, [b2.token, DEV_B])).rows[0].r;
+ok(!!sos2.sos_id, 'SOS without location is accepted');
+await expectError(`select public.send_sos($1,$2)`, ['nope', DEV_A], 'INVALID_TOKEN', 'SOS needs a valid phone token');
+await db.query(`select public.update_sos_location($1,$2,$3,$4,$5,$6)`, [b2.token, DEV_B, sos2.sos_id, 28.6139, 77.2090, 15]);
+let upd = (await db.query(`select public.update_sos_location($1,$2,$3,1,1,1) as r`, [a2.token, DEV_A, sos2.sos_id])).rows[0].r;
+ok(upd.updated === 0, 'a student cannot change another student\'s SOS');
+await expectError(`select * from sos_events`, [], 'permission denied', 'phones cannot read SOS table');
+let st = (await db.query(`select public.sos_status($1,$2,$3) as r`, [a2.token, DEV_A, sos1.sos_id])).rows[0].r;
+ok(st.acknowledged === false, 'phone sees "not seen yet"');
+for (let i = 0; i < 4; i++) await db.query(`select public.send_sos($1,$2)`, [a2.token, DEV_A]);
+await expectError(`select public.send_sos($1,$2)`, [a2.token, DEV_A], 'SOS_RATE_LIMIT', '6th SOS within 10 minutes is refused (anti-spam)');
+
+await asRole('authenticated', M2);
+ok((await db.query(`select * from mentor_sos($1, 30)`, [groupA])).rows.length === 0, 'other mentor sees no SOS from this group');
+await expectError(`select public.mentor_ack_sos($1)`, [sos1.sos_id], 'NOT_ALLOWED', 'other mentor cannot acknowledge');
+await asRole('authenticated', M1);
+const sosList = (await db.query(`select * from mentor_sos($1, 30)`, [groupA])).rows;
+ok(sosList.length === 6, 'mentor sees all 6 SOS presses of the group');
+const s2row = sosList.find(x => x.id === sos2.sos_id);
+ok(Math.abs(s2row.lat - 28.6139) < 1e-6 && s2row.full_name === 'Ravi Singh', 'updated location + name shown to mentor');
+await db.query(`select public.mentor_ack_sos($1)`, [sos1.sos_id]);
+await asRole('anon');
+st = (await db.query(`select public.sos_status($1,$2,$3) as r`, [a2.token, DEV_A, sos1.sos_id])).rows[0].r;
+ok(st.acknowledged === true, 'phone sees "your mentor has seen your alert"');
+
+console.log('v2: reset removes everything of that student');
+await asRole('authenticated', M1);
+await db.query(`delete from participants where id = $1`, [b2.participant_id]);
+await asOwner();
+ok((await db.query(`select count(*)::int n from sos_events where participant_id=$1`, [b2.participant_id])).rows[0].n === 0, 'SOS history deleted with the student');
+
+// ===================== Upgrade from v1 =====================
+console.log('Upgrade: v1 database -> v2 keeps data');
+const v1Path = new URL('./fixtures/schema_v1.sql', import.meta.url);
+if (fs.existsSync(v1Path)) {
+  const db2 = new PGlite();
+  await db2.exec(`create role anon nologin; create role authenticated nologin;
+    grant usage on schema public to anon, authenticated;
+    alter default privileges in schema public grant all on tables to anon, authenticated;
+    alter default privileges in schema public grant execute on functions to anon, authenticated;
+    create schema auth; grant usage on schema auth to anon, authenticated;
+    create table auth.users (id uuid primary key, email text);
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.sub', true), '')::uuid $$;
+    grant execute on function auth.uid() to anon, authenticated;
+    insert into auth.users values ('${M1}', 'mentor@college.edu');`);
+  await db2.exec(fs.readFileSync(v1Path, 'utf8'));
+  await db2.query(`select public.setup_group('Old', 'OLD1', 'mentor@college.edu')`);
+  const old = (await db2.query(`select public.register_device('OLD1','Old Student','R9',$1) as r`, [DEV_A])).rows[0].r;
+  await db2.query(`select public.upload_usage($1,$2,$3::jsonb,'1.0')`, [old.token, DEV_A, JSON.stringify([{ day: today, screen_time_sec: 4321, apps: [{ pkg: 'a.b', name: 'AB', sec: 4000, opens: 3 }] }])]);
+  await db2.exec(schema);
+  await db2.exec(schema);
+  const kept = (await db2.query(`select screen_time_sec, sites from daily_usage`)).rows;
+  ok(kept.length === 1 && kept[0].screen_time_sec === 4321 && Array.isArray(kept[0].sites), 'existing reports kept; new websites column added');
+  const after = (await db2.query(`select public.upload_usage(p_token => $1, p_device_hash => $2, p_days => '[]'::jsonb, p_app_version => '1.0') as r`, [old.token, DEV_A])).rows[0].r;
+  ok(after.saved === 0 && after.group_name === 'Old', 'already-installed v0.1 phones keep working after the upgrade (same token)');
+  const fns = (await db2.query(`select count(*)::int n from pg_proc where proname = 'upload_usage'`)).rows[0].n;
+  ok(fns === 1, 'only one upload_usage function exists (old one replaced)');
+} else {
+  console.log('  (skipped: fixtures/schema_v1.sql not found)');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

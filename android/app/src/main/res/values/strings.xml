@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WellShare</string>
+    <string name="accessibility_description">WellShare uses this for two things your mentor set up: it closes an app when the daily time limit for it runs out, and it notes the site name (like youtube.com) open in Chrome and similar browsers. It never reads full web addresses, searches, messages, passwords or what you type.</string>
 </resources>

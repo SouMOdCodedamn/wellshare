@@ -21,6 +21,8 @@
   --warn: #E59A00;
   --crit: #D03B3B;
   --crit-wash: rgba(208,59,59,.08);
+  --sos: #B3261E;
+  --sos-ink: #FFFFFF;
   /* screen-time ramp: one hue, light -> dark = less -> more */
   --h1: #E1F0E8; --h1i: #18201B;
   --h2: #C3E2D2; --h2i: #18201B;
@@ -38,7 +40,7 @@
   :root:not([data-theme="light"]) {
     --bg: #0F1311; --surface: #171C19; --surface-2: #212823; --ink: #EAF0EC; --ink-2: #B7C2BB; --muted: #86918A;
     --line: #2A322D; --accent: #7CC4A8; --accent-ink: #0E1A15; --accent-wash: rgba(124,196,168,.12);
-    --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10);
+    --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10); --sos: #A3221B;
     --h1: #1C2E26; --h1i: #EAF0EC; --h2: #224033; --h2i: #EAF0EC; --h3: #2A5743; --h3i: #EAF0EC;
     --h4: #347158; --h4i: #EAF0EC; --h5: #42906F; --h5i: #0E1A15; --h6: #5BAE89; --h6i: #0E1A15; --h7: #8BD1AE; --h7i: #0E1A15;
     color-scheme: dark;
@@ -47,7 +49,7 @@
 :root[data-theme="dark"] {
   --bg: #0F1311; --surface: #171C19; --surface-2: #212823; --ink: #EAF0EC; --ink-2: #B7C2BB; --muted: #86918A;
   --line: #2A322D; --accent: #7CC4A8; --accent-ink: #0E1A15; --accent-wash: rgba(124,196,168,.12);
-  --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10);
+  --good: #2DBE4E; --warn: #FAB219; --crit: #F06A6A; --crit-wash: rgba(240,106,106,.10); --sos: #A3221B;
   --h1: #1C2E26; --h1i: #EAF0EC; --h2: #224033; --h2i: #EAF0EC; --h3: #2A5743; --h3i: #EAF0EC;
   --h4: #347158; --h4i: #EAF0EC; --h5: #42906F; --h5i: #0E1A15; --h6: #5BAE89; --h6i: #0E1A15; --h7: #8BD1AE; --h7i: #0E1A15;
   color-scheme: dark;
@@ -204,6 +206,66 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 .footer-note { margin-top: 18px; font-size: 13px; color: var(--muted); max-width: 70ch; }
 @media (prefers-reduced-motion: no-preference) { .register-box, .panel { transition: opacity .2s; } }
 .loading { opacity: .55; }
+
+/* SOS strip: shown on every screen until handled */
+.sos-strip { display: grid; gap: 8px; margin-bottom: 16px; }
+.sos-card { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 16px; border-radius: var(--radius); background: var(--sos); color: var(--sos-ink); }
+.sos-card .what { flex: 1 1 260px; min-width: 0; }
+.sos-card strong { font-size: 16px; display: block; }
+.sos-card .meta { font-size: 13.5px; opacity: .92; }
+.sos-card a { color: var(--sos-ink); font-weight: 700; text-underline-offset: 3px; }
+.sos-card .btn { background: var(--sos-ink); color: var(--sos); border-color: var(--sos-ink); }
+.sos-card .btn.ghost { background: transparent; color: var(--sos-ink); }
+
+/* alerts */
+.alerts { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 16px; }
+.alerts h3 { font-size: 14px; margin-bottom: 4px; }
+.alert-row { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.alerts h3 + .alert-row { border-top: 0; }
+.alert-row .who-link { all: unset; cursor: pointer; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.alert-row .who-link:focus-visible { outline: 2px solid var(--accent); }
+.alert-row .what { color: var(--ink-2); flex: 1 1 260px; min-width: 0; }
+
+/* settings + forms */
+details.settings { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin-top: 16px; }
+details.settings > summary { cursor: pointer; padding: 14px 16px; font-weight: 700; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+details.settings > summary .note { font-weight: 500; }
+details.settings .settings-body { padding: 0 16px 16px; display: grid; gap: 20px; }
+details.settings h4, .panel h4 { margin: 0 0 4px; font-size: 14px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+.form-row .field { flex: 1 1 180px; min-width: 0; }
+.form-row .field.num { flex: 0 1 120px; }
+.form-msg { font-size: 13px; color: var(--ink-2); min-height: 1.2em; margin-top: 6px; }
+.form-msg.err { color: var(--crit); }
+.note { font-size: 13px; color: var(--muted); }
+.limit-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.limit-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.limit-list .ln { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.limit-list .lm { font-size: 13px; color: var(--ink-2); grid-column: 1; }
+.limit-list .lm.over { color: var(--crit); font-weight: 600; }
+.limit-list .lm.replaced { text-decoration: line-through; color: var(--muted); }
+.limit-list .act { grid-column: 2; grid-row: 1 / span 2; }
+.btn.small { min-height: 32px; padding: 0 12px; font-size: 13px; }
+
+/* detail page */
+.detail-stack { display: grid; gap: 12px; }
+.detail-stack > * { margin: 0; }
+.day-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; margin-top: 10px; }
+.day-chip { flex: 0 0 auto; display: grid; justify-items: center; min-width: 54px; padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font: inherit; font-size: 11.5px; color: var(--ink-2); line-height: 1.3; }
+.day-chip b { font-size: 14px; color: var(--ink); }
+.day-chip .h { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.day-chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.day-chip[aria-pressed="true"] b, .day-chip[aria-pressed="true"] .h { color: var(--accent-ink); }
+.split-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 12px; }
+@media (max-width: 640px) { .split-2 { grid-template-columns: minmax(0, 1fr); } }
+.split-2 h4 { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.apps .fill.site { background: var(--h3); }
+.sos-hist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.sos-hist li { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.sos-hist a { color: var(--ink); font-weight: 600; text-underline-offset: 3px; }
+.chart .hit { cursor: pointer; }
+.chart .bar.sel { fill: var(--accent); }
+td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
 </style>
 
 <div class="wrap">
@@ -225,6 +287,8 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     </div>
   </header>
 
+  <div class="sos-strip" id="sosStrip" role="alert" aria-live="assertive"></div>
+
   <section class="login" id="loginView" hidden>
     <p class="eyebrow">Mentors only</p>
     <h2>Sign in</h2>
@@ -240,8 +304,9 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   <main id="boardView" hidden>
     <div class="banner" id="demoBanner" hidden>
       <strong>Demo data.</strong>
-      <span>These students are made up. Connect your Supabase project (see the guide) to see real reports.</span>
+      <span>These students are made up, and changes here aren't saved. Connect your Supabase project (see the guide) to see real reports.</span>
     </div>
+    <section class="alerts" id="alerts" hidden></section>
     <div class="stats" id="stats"></div>
     <div class="controls">
       <input class="field grow" id="search" type="search" placeholder="Search name or roll number" aria-label="Search participants">
@@ -249,12 +314,13 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
         <option value="avg">Most screen time (7 days)</option>
         <option value="night">Most after midnight</option>
         <option value="unlocks">Most unlocks</option>
-        <option value="sync">Oldest sync first</option>
+        <option value="sync">Oldest report first</option>
         <option value="name">Name A–Z</option>
       </select>
       <select class="field" id="range" aria-label="Days shown">
         <option value="7">Last 7 days</option>
         <option value="14" selected>Last 14 days</option>
+        <option value="30">Last 30 days</option>
       </select>
     </div>
     <div class="register-box" id="registerBox"></div>
@@ -264,9 +330,37 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
         <span class="ramp"><span style="background:var(--surface-2)"></span><span style="background:var(--h1)"></span><span style="background:var(--h2)"></span><span style="background:var(--h3)"></span><span style="background:var(--h4)"></span><span style="background:var(--h5)"></span><span style="background:var(--h6)"></span><span style="background:var(--h7)"></span></span>
         <span class="ramp-labels"><span>–</span><span>&lt;1</span><span>1</span><span>2</span><span>3</span><span>4</span><span>6</span><span>8+</span></span>
       </span>
-      <span>“–” means no report that day. Today has a dark outline. Tap a student for details.</span>
+      <span>“–” means no report that day. Today has a dark outline. Tap a student for details, app timers and websites.</span>
     </div>
-    <p class="footer-note">Screen time is the time apps were open on screen, counted the same way as Android's Digital Wellbeing. After midnight means 00:00–05:00. Use these numbers to start a conversation, not to judge one day.</p>
+
+    <details class="settings" id="settings">
+      <summary><span>Group settings: SOS number and group app timers</span><span class="note" id="settingsHint"></span></summary>
+      <div class="settings-body">
+        <div>
+          <h4>SOS phone number</h4>
+          <p class="note">The SOS button on students' phones calls this number and sends you an alert with their location. Use a phone that's always with a mentor or warden.</p>
+          <form class="form-row" id="sosForm" novalidate>
+            <input class="field" id="sosPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+91 98765 43210" aria-label="SOS phone number">
+            <button class="btn primary" type="submit">Save number</button>
+          </form>
+          <div class="form-msg" id="sosMsg" role="status"></div>
+        </div>
+        <div>
+          <h4>App timers for the whole group</h4>
+          <p class="note">A daily limit for every student in this group. When it runs out, the app closes on their phone until midnight. A timer set on one student's page replaces the group timer for that student. Phones pick up changes within about an hour. Calls, messages and Settings can't be limited.</p>
+          <ul class="limit-list" id="groupLimits"></ul>
+          <form class="form-row" id="groupLimitForm" novalidate>
+            <select class="field" id="groupLimitApp" aria-label="App"></select>
+            <input class="field num" id="groupLimitMin" type="number" min="1" max="1440" step="5" value="60" aria-label="Minutes per day">
+            <span class="note">min/day</span>
+            <button class="btn primary" type="submit">Set group timer</button>
+          </form>
+          <div class="form-msg" id="groupLimitMsg" role="status"></div>
+        </div>
+      </div>
+    </details>
+
+    <p class="footer-note">Screen time is the time apps were open on screen, counted the same way as Android's Digital Wellbeing. After midnight means 00:00–05:00. Phones report about every hour. Use these numbers to start a conversation, not to judge one day.</p>
   </main>
 
   <main id="detailView" hidden></main>
@@ -279,6 +373,12 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   const SUPABASE_URL = "__SUPABASE_URL__";
   const SUPABASE_KEY = "__SUPABASE_KEY__";
   const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js";
+  const REFRESH_MS = 60 * 1000;
+  const NOT_REPORTING_HOURS = 12;
+  // Never limited on the phone; hidden from the timer pickers.
+  const SAFE_APPS = new Set(["org.wellshare.app", "com.android.settings", "com.google.android.dialer", "com.android.dialer",
+    "com.samsung.android.dialer", "com.android.phone", "com.google.android.apps.messaging", "com.android.mms",
+    "com.samsung.android.messaging", "com.google.android.contacts", "com.android.contacts", "com.samsung.android.contacts"]);
 
   const configured = SUPABASE_URL.startsWith("https://") && SUPABASE_KEY.length > 20;
   const demo = !configured || location.hash === "#demo";
@@ -287,12 +387,13 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
   const SVGNS = "http://www.w3.org/2000/svg";
   const svg = (tag, attrs) => { const n = document.createElementNS(SVGNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
+  const button = (text, cls, onClick) => { const b = el("button", cls, text); b.type = "button"; if (onClick) b.addEventListener("click", onClick); return b; };
 
   // ---- formatting ----
   const pad = (n) => String(n).padStart(2, "0");
   const isoDay = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const addDays = (iso, n) => { const [y, m, d] = iso.split("-").map(Number); const x = new Date(y, m - 1, d + n); return isoDay(x); };
-  const todayIso = isoDay(new Date());
+  let todayIso = isoDay(new Date());
   const dur = (sec) => {
     if (sec == null) return "–";
     const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
@@ -303,6 +404,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   const dow = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
   const dayNum = (iso) => Number(iso.slice(8));
   const niceDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+  const firstName = (n) => String(n || "").split(/\s+/)[0];
   const bin = (sec) => {
     const h = sec / 3600;
     if (h < 1) return 1; if (h < 2) return 2; if (h < 3) return 3; if (h < 4) return 4; if (h < 6) return 5; if (h < 8) return 6; return 7;
@@ -310,18 +412,21 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   const ago = (ts) => {
     if (!ts) return null;
     const mins = (Date.now() - new Date(ts).getTime()) / 60000;
-    if (mins < 60) return `${Math.max(1, Math.round(mins))} min ago`;
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${Math.round(mins)} min ago`;
     if (mins < 24 * 60) return `${Math.round(mins / 60)} h ago`;
     const d = Math.round(mins / 1440);
     return d === 1 ? "1 day ago" : `${d} days ago`;
   };
+  const hoursSince = (ts) => ts ? (Date.now() - new Date(ts).getTime()) / 3.6e6 : null;
   const syncState = (ts) => {
-    if (!ts) return { cls: "crit", text: "Never sent", rank: 1e9 };
-    const hrs = (Date.now() - new Date(ts).getTime()) / 3.6e6;
-    if (hrs <= 24) return { cls: "good", text: ago(ts), rank: hrs };
-    if (hrs <= 72) return { cls: "warn", text: ago(ts), rank: hrs };
+    const hrs = hoursSince(ts);
+    if (hrs == null) return { cls: "crit", text: "Never sent", rank: 1e9 };
+    if (hrs <= 2) return { cls: "good", text: ago(ts), rank: hrs };
+    if (hrs <= NOT_REPORTING_HOURS) return { cls: "warn", text: ago(ts), rank: hrs };
     return { cls: "crit", text: ago(ts), rank: hrs };
   };
+  const mapLink = (lat, lon) => `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
   const ICONS = {
     good: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="6" fill="currentColor"/><path d="M3.3 6.2l1.8 1.8 3.6-3.8" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     warn: '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l5.4 10.2H.6z" fill="currentColor"/><rect x="5.3" y="4" width="1.4" height="3.6" rx=".7" fill="#1b1b1b"/><circle cx="6" cy="9.1" r=".8" fill="#1b1b1b"/></svg>',
@@ -335,6 +440,13 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     if (title) c.title = title;
     return c;
   };
+  const ERRORS = {
+    BAD_PHONE: "Enter a phone number with 6–15 digits, like +91 98765 43210.",
+    BAD_APP: "Choose an app from the list.",
+    BAD_MINUTES: "Minutes must be between 1 and 1440 (24 hours).",
+    NOT_ALLOWED: "You can only change your own group.",
+  };
+  const errText = (e) => { const m = (e && e.message) || String(e); return ERRORS[m] || m; };
 
   // ---- tooltip ----
   const tip = $("tip");
@@ -356,25 +468,42 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   let sb = null;
   let groups = [];
   let groupId = null;
-  let rows = [];          // mentor_overview rows
+  let rows = [];        // mentor_overview rows
+  let sosList = [];     // mentor_sos rows
+  let limitList = [];   // app_limits rows for the group
   let view = "board";
+  let currentPid = null;
 
+  const rpc = async (fn, args) => {
+    const { data, error } = await sb.rpc(fn, args);
+    if (error) throw new Error(error.message);
+    return data;
+  };
   const api = {
     async groups() {
       if (demo) return DEMO.groups;
-      const { data, error } = await sb.from("groups").select("id,name,join_code").order("name");
+      const { data, error } = await sb.from("groups").select("id,name,join_code,sos_phone").order("name");
       if (error) throw error;
       return data;
     },
-    async overview(gid) {
-      if (demo) return DEMO.overview(gid);
-      const { data, error } = await sb.rpc("mentor_overview", { p_group: gid, p_today: todayIso, p_days: 30 });
+    overview: (gid) => demo ? DEMO.overview(gid) : rpc("mentor_overview", { p_group: gid, p_today: todayIso, p_days: 30 }),
+    days: (pid) => demo ? DEMO.days(pid) : rpc("mentor_participant_days", { p_participant: pid, p_today: todayIso, p_days: 30 }),
+    sos: (gid) => demo ? DEMO.sos() : rpc("mentor_sos", { p_group: gid, p_days: 30 }),
+    async limits(gid) {
+      if (demo) return DEMO.limits();
+      const { data, error } = await sb.from("app_limits").select("id,participant_id,pkg,app_name,minutes,updated_at").eq("group_id", gid);
       if (error) throw error;
       return data;
     },
-    async days(pid) {
-      if (demo) return DEMO.days(pid);
-      const { data, error } = await sb.rpc("mentor_participant_days", { p_participant: pid, p_today: todayIso, p_days: 30 });
+    setLimit: (gid, pid, pkg, name, minutes) => demo ? DEMO.setLimit(pid, pkg, name, minutes)
+      : rpc("mentor_set_limit", { p_group: gid, p_participant: pid, p_pkg: pkg, p_name: name, p_minutes: minutes }),
+    removeLimit: (id) => demo ? DEMO.removeLimit(id) : rpc("mentor_remove_limit", { p_limit: id }),
+    setSosPhone: (gid, phone) => demo ? DEMO.setSosPhone(phone) : rpc("mentor_set_sos_phone", { p_group: gid, p_phone: phone }),
+    ackSos: (id) => demo ? DEMO.ackSos(id) : rpc("mentor_ack_sos", { p_sos: id }),
+    async groupApps(pids) {
+      if (demo) return DEMO.groupApps();
+      if (!pids.length) return [];
+      const { data, error } = await sb.from("daily_usage").select("apps").in("participant_id", pids).gte("day", addDays(todayIso, -13));
       if (error) throw error;
       return data;
     },
@@ -389,6 +518,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
   function showOnly(id) {
     for (const v of ["loginView", "boardView", "detailView"]) $(v).hidden = v !== id;
     $("topActions").hidden = id === "loginView";
+    if (id === "loginView") $("sosStrip").replaceChildren();
     hideTip();
   }
 
@@ -396,11 +526,11 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     $("demoBanner").hidden = !demo;
     $("csvBtn").hidden = demo;
     $("signOutBtn").hidden = demo;
-    if (demo) { await loadGroups(); return; }
+    if (demo) { await loadGroups(); startAutoRefresh(); return; }
     await loadScript(SUPABASE_JS);
     sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: true } });
     const { data } = await sb.auth.getSession();
-    if (data.session) await loadGroups(); else showOnly("loginView");
+    if (data.session) { await loadGroups(); startAutoRefresh(); } else showOnly("loginView");
   }
 
   function loadScript(src) {
@@ -414,10 +544,11 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     btn.disabled = false;
     if (error) { $("loginError").textContent = "That email and password don't match a mentor login. Check them and try again."; return; }
     await loadGroups();
+    startAutoRefresh();
   });
-  $("signOutBtn").addEventListener("click", async () => { await sb.auth.signOut(); rows = []; showOnly("loginView"); });
-  $("refreshBtn").addEventListener("click", () => loadOverview());
-  $("groupSelect").addEventListener("change", (e) => { groupId = e.target.value; loadOverview(); });
+  $("signOutBtn").addEventListener("click", async () => { await sb.auth.signOut(); rows = []; sosList = []; updateTitle(); showOnly("loginView"); });
+  $("refreshBtn").addEventListener("click", () => loadAll());
+  $("groupSelect").addEventListener("change", (e) => { groupId = e.target.value; groupAppsCache = null; loadAll(); });
   ["search", "sort", "range"].forEach((id) => $(id).addEventListener("input", renderBoard));
   $("csvBtn").addEventListener("click", downloadCsv);
 
@@ -428,6 +559,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     if (!groups.length) {
       showOnly("boardView");
       $("stats").replaceChildren();
+      $("settings").hidden = true;
       $("registerBox").replaceChildren(emptyState("You aren't a mentor of any group yet",
         "Ask your project admin to run setup_group in the Supabase SQL editor with your email."));
       return;
@@ -437,27 +569,54 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     sel.hidden = groups.length < 2;
     groupId = groupId && groups.some((g) => g.id === groupId) ? groupId : groups[0].id;
     sel.value = groupId;
-    await loadOverview();
+    await loadAll();
   }
 
-  async function loadOverview() {
+  const currentGroup = () => groups.find((x) => x.id === groupId);
+
+  /** Loads everything for the group and redraws the current view. */
+  async function loadAll() {
+    todayIso = isoDay(new Date());
     const box = $("registerBox");
     box.classList.add("loading");
     try {
-      rows = await api.overview(groupId);
+      [rows, sosList, limitList] = await Promise.all([api.overview(groupId), api.sos(groupId), api.limits(groupId)]);
     } catch (err) { box.classList.remove("loading"); return fatal(err); }
     box.classList.remove("loading");
-    const g = groups.find((x) => x.id === groupId);
+    const g = currentGroup();
     $("groupLabel").textContent = g ? `${g.name} · join code ${g.join_code}` : "Mentor dashboard";
+    renderSos();
+    renderSettings();
     if (view === "detail" && currentPid && rows.some((r) => r.participant_id === currentPid)) openDetail(currentPid);
-    else { view = "board"; showOnly("boardView"); renderBoard(); }
+    else { view = "board"; currentPid = null; showOnly("boardView"); renderBoard(); }
   }
+
+  /** Every minute: new SOS presses and reports, without disturbing what the mentor is doing. */
+  let refreshTimer = 0;
+  function startAutoRefresh() {
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(async () => {
+      if (document.visibilityState !== "visible" || !groupId || !$("loginView").hidden) return;
+      try {
+        todayIso = isoDay(new Date());
+        const [r, s, l] = await Promise.all([api.overview(groupId), api.sos(groupId), api.limits(groupId)]);
+        rows = r; sosList = s; limitList = l;
+        renderSos();
+        if (view === "board") {
+          renderBoard();
+          if (!$("settings").contains(document.activeElement)) renderSettings();
+        }
+      } catch (err) { console.warn("Auto-refresh failed", err); }
+    }, REFRESH_MS);
+  }
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && groupId && $("loginView").hidden) loadAll(); });
 
   function fatal(err) {
     console.error(err);
     showOnly("boardView");
     $("stats").replaceChildren();
-    $("registerBox").replaceChildren(emptyState("Couldn't load the reports", (err && err.message ? err.message : String(err)) + " — check your internet and press Refresh."));
+    $("alerts").hidden = true;
+    $("registerBox").replaceChildren(emptyState("Couldn't load the reports", errText(err) + " — check your internet and press Refresh."));
   }
 
   function emptyState(title, text) {
@@ -469,14 +628,80 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
   };
 
+  // ---- SOS strip ----
+  const openSos = () => sosList.filter((s) => !s.acknowledged_at && hoursSince(s.created_at) <= 7 * 24);
+  function updateTitle() {
+    const n = openSos().length;
+    document.title = n ? `(${n}) SOS · WellShare Mentor` : "WellShare Mentor";
+  }
+  function renderSos() {
+    const strip = $("sosStrip");
+    const list = openSos();
+    updateTitle();
+    strip.replaceChildren(...list.map((s) => {
+      const card = el("div", "sos-card");
+      const what = el("div", "what");
+      what.append(el("strong", null, `SOS from ${s.full_name} (${s.roll_no})`));
+      const meta = el("div", "meta");
+      meta.append(document.createTextNode(`${ago(s.created_at)} · ${new Date(s.created_at).toLocaleString(undefined, { hour: "numeric", minute: "2-digit", day: "numeric", month: "short" })} · `));
+      if (s.lat != null && s.lon != null) {
+        const a = el("a", null, `Open location in Google Maps${s.accuracy_m ? ` (±${Math.round(s.accuracy_m)} m)` : ""}`);
+        a.href = mapLink(s.lat, s.lon); a.target = "_blank"; a.rel = "noopener";
+        meta.append(a);
+      } else {
+        meta.append(document.createTextNode("Location not shared"));
+      }
+      what.append(meta);
+      const open = button("Open report", "btn small ghost", () => openDetail(s.participant_id));
+      const ack = button("Mark as handled", "btn small", async () => {
+        ack.disabled = true;
+        try { await api.ackSos(s.id); s.acknowledged_at = new Date().toISOString(); renderSos(); if (view === "detail") openDetail(currentPid); }
+        catch (err) { ack.disabled = false; alertText(card, errText(err)); }
+      });
+      card.append(what, open, ack);
+      return card;
+    }));
+  }
+  const alertText = (parent, text) => { const t = el("div", "meta", text); parent.append(t); };
+
+  // ---- alerts (stopped reporting, permissions off) ----
+  function computeAlerts() {
+    const out = [];
+    for (const r of rows) {
+      const hrs = hoursSince(r.last_sync_at);
+      if (r.stopped_at) out.push({ cls: "crit", r, rank: 1, text: `Stopped sharing ${ago(r.stopped_at)}.` });
+      else if (hrs == null) out.push({ cls: "crit", r, rank: 2, text: "Registered but has never sent a report." });
+      else if (hrs > NOT_REPORTING_HOURS) out.push({ cls: "crit", r, rank: 2, text: `No report for ${hrs < 48 ? Math.round(hrs) + " hours" : Math.round(hrs / 24) + " days"}. The app may be uninstalled, or the phone is off or offline.` });
+      if (r.usage_access_on === false) out.push({ cls: "warn", r, rank: 3, text: "Turned off usage access, so screen time isn't being shared." });
+      if (r.watcher_on === false) out.push({ cls: "warn", r, rank: 3, text: "Turned off app timers and website tracking (Accessibility)." });
+      if (r.watcher_on == null && r.last_sync_at && !r.stopped_at) out.push({ cls: "info", r, rank: 4, text: "Using an old app version without timers or websites. Ask them to install the latest one." });
+    }
+    return out.sort((a, b) => a.rank - b.rank || a.r.full_name.localeCompare(b.r.full_name));
+  }
+  function renderAlerts() {
+    const box = $("alerts");
+    const list = computeAlerts();
+    box.hidden = list.length === 0;
+    if (!list.length) { box.replaceChildren(); return; }
+    const shown = list.slice(0, 12);
+    box.replaceChildren(el("h3", null, `Needs attention (${list.length})`), ...shown.map((a) => {
+      const row = el("div", "alert-row");
+      row.append(chip(a.cls, a.cls === "crit" ? "Alert" : a.cls === "warn" ? "Check" : "Note"));
+      row.append(button(a.r.full_name, "who-link", () => openDetail(a.r.participant_id)));
+      row.append(el("span", "what", a.text));
+      return row;
+    }));
+    if (list.length > shown.length) box.append(el("div", "note", `And ${list.length - shown.length} more. Sort by "Oldest report first" to see them.`));
+  }
+
   function renderStats() {
     const total = rows.length;
-    const fresh = rows.filter((r) => syncState(r.last_sync_at).cls === "good").length;
+    const ok = rows.filter((r) => !r.stopped_at && (hoursSince(r.last_sync_at) ?? 1e9) <= NOT_REPORTING_HOURS).length;
     const avg = groupAvg();
     const owls = rows.filter((r) => (r.avg7_night_sec || 0) >= 30 * 60).length;
     const tiles = [
       ["Participants", String(total), total ? `${rows.filter((r) => r.id_source !== "drm").length} with a weaker phone ID` : "No one has joined yet"],
-      ["Sent a report in the last 24 h", `${fresh}/${total}`, total - fresh ? `${total - fresh} need a reminder to open the app` : "Everyone is up to date"],
+      [`Reported in the last ${NOT_REPORTING_HOURS} h`, `${ok}/${total}`, total - ok ? `${total - ok} not reporting: see "Needs attention"` : "Everyone is reporting"],
       ["Group average, last 7 days", avg == null ? "–" : dur(avg), "screen time per day"],
       ["Late-night users", String(owls), "30 min or more after midnight, on average"],
     ];
@@ -485,7 +710,20 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     }));
   }
 
+  function statusChips(r) {
+    const wrap = el("span", "chips");
+    const s = syncState(r.last_sync_at);
+    wrap.append(chip(s.cls, s.text, r.last_sync_at ? new Date(r.last_sync_at).toLocaleString() : ""));
+    if (r.stopped_at) wrap.append(chip("crit", "Stopped"));
+    else {
+      if (r.usage_access_on === false) wrap.append(chip("warn", "Usage off"));
+      if (r.watcher_on === false) wrap.append(chip("warn", "Timers off"));
+    }
+    return wrap;
+  }
+
   function renderBoard() {
+    renderAlerts();
     renderStats();
     const q = $("search").value.trim().toLowerCase();
     const sort = $("sort").value;
@@ -501,7 +739,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 
     const box = $("registerBox");
     if (!rows.length) {
-      const g = groups.find((x) => x.id === groupId);
+      const g = currentGroup();
       box.replaceChildren(emptyState("No participants yet", `Share the app and the join code ${g ? g.join_code : ""} with your students. They appear here after registering.`));
       return;
     }
@@ -509,7 +747,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
 
     const table = el("table", "register");
     const thead = el("thead"); const hr = el("tr");
-    const thWho = el("th", "who", "Participant"); hr.appendChild(thWho);
+    hr.appendChild(el("th", "who", "Participant"));
     for (const d of days) {
       const th = el("th", "day" + (d === todayIso ? " today" : ""));
       th.append(el("span", "dow", dow(d).slice(0, 2)), document.createTextNode(String(dayNum(d))));
@@ -535,7 +773,6 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
         const td = el("td", "cell" + (d === todayIso ? " today" : ""));
         const x = byDay.get(d);
         const c = el("span", "c" + (x ? " c" + bin(x.sec) : ""), x ? hours1(x.sec) : "–");
-        c.tabIndex = -1;
         const lines = x ? [`Screen time ${dur(x.sec)}`, `Unlocks ${x.unlocks ?? "–"}`, `After midnight ${dur(x.night || 0)}`] : ["No report for this day"];
         c.addEventListener("pointerenter", () => showTip(c, `${r.full_name} · ${niceDate(d)}`, lines));
         c.addEventListener("pointerleave", hideTip);
@@ -544,8 +781,7 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
       tr.appendChild(el("td", "num first", r.avg7_sec == null ? "–" : dur(r.avg7_sec)));
       tr.appendChild(el("td", "num", r.avg7_unlocks == null ? "–" : String(r.avg7_unlocks)));
       tr.appendChild(el("td", "num", r.avg7_night_sec == null ? "–" : dur(r.avg7_night_sec)));
-      const s = syncState(r.last_sync_at);
-      const tdS = el("td", "sync"); tdS.appendChild(chip(s.cls, s.text, r.last_sync_at ? new Date(r.last_sync_at).toLocaleString() : "")); tr.appendChild(tdS);
+      const tdS = el("td", "sync"); tdS.appendChild(statusChips(r)); tr.appendChild(tdS);
       tbody.appendChild(tr);
     }
     table.appendChild(tbody);
@@ -555,26 +791,104 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     if (th && box.scrollWidth > box.clientWidth) box.scrollLeft = Math.max(0, th.offsetLeft + th.offsetWidth - box.clientWidth + 8);
   }
 
+  // ---- group settings: SOS number + group timers ----
+  let groupAppsCache = null;
+  async function appOptionsForGroup() {
+    if (groupAppsCache) return groupAppsCache;
+    const data = await api.groupApps(rows.map((r) => r.participant_id));
+    groupAppsCache = appTotals(data.map((d) => ({ apps: d.apps })));
+    return groupAppsCache;
+  }
+  /** [{pkg, name, sec}] sorted by total time, without apps that can't be limited. */
+  function appTotals(days) {
+    const tot = new Map();
+    for (const d of days) for (const a of d.apps || []) {
+      if (!a.pkg || SAFE_APPS.has(a.pkg)) continue;
+      const cur = tot.get(a.pkg) || { pkg: a.pkg, name: a.name || a.pkg, sec: 0 };
+      cur.sec += a.sec || 0; tot.set(a.pkg, cur);
+    }
+    return [...tot.values()].sort((a, b) => b.sec - a.sec);
+  }
+  function fillAppSelect(sel, options, taken) {
+    const opts = options.filter((o) => !taken.has(o.pkg));
+    sel.replaceChildren(...(opts.length ? opts.map((o) => { const x = el("option", null, `${o.name}`); x.value = o.pkg; x.dataset.name = o.name; return x; })
+      : [Object.assign(el("option", null, "No app data yet"), { value: "" })]));
+    sel.disabled = !opts.length;
+  }
+
+  function renderSettings() {
+    const g = currentGroup();
+    if (!g) return;
+    $("settings").hidden = false;
+    if (document.activeElement !== $("sosPhone")) $("sosPhone").value = g.sos_phone || "";
+    $("settingsHint").textContent = g.sos_phone ? "" : "SOS number not set";
+    if (!g.sos_phone && !$("settings").dataset.touched) $("settings").open = true;
+
+    const gl = limitList.filter((l) => !l.participant_id).sort((a, b) => a.app_name.localeCompare(b.app_name));
+    const ul = $("groupLimits");
+    ul.replaceChildren(...(gl.length ? gl.map((l) => {
+      const li = el("li");
+      li.append(el("span", "ln", l.app_name || l.pkg), el("span", "lm", `${dur(l.minutes * 60)} per day · whole group`));
+      const rm = button("Remove", "btn small act", async () => {
+        rm.disabled = true;
+        try { await api.removeLimit(l.id); limitList = await api.limits(groupId); renderSettings(); setMsg("groupLimitMsg", `Removed the group timer for ${l.app_name}.`); }
+        catch (err) { rm.disabled = false; setMsg("groupLimitMsg", errText(err), true); }
+      });
+      li.append(rm);
+      return li;
+    }) : [el("li", "note", "No group timers yet.")]));
+    appOptionsForGroup().then((opts) => fillAppSelect($("groupLimitApp"), opts, new Set(gl.map((l) => l.pkg)))).catch(() => {});
+  }
+  const setMsg = (id, text, isErr) => { const m = $(id); m.textContent = text; m.classList.toggle("err", !!isErr); };
+  $("settings").addEventListener("toggle", () => { $("settings").dataset.touched = "1"; });
+
+  $("sosForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const val = $("sosPhone").value.trim();
+    setMsg("sosMsg", "Saving…");
+    try {
+      const res = await api.setSosPhone(groupId, val);
+      const g = currentGroup(); g.sos_phone = res.sos_phone;
+      renderSettings();
+      setMsg("sosMsg", res.sos_phone ? `Saved. Phones will call ${res.sos_phone} after their next sync (within about an hour).` : "Removed. The SOS button will only send an alert.");
+    } catch (err) { setMsg("sosMsg", errText(err), true); }
+  });
+
+  $("groupLimitForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const sel = $("groupLimitApp");
+    const opt = sel.selectedOptions[0];
+    const minutes = Number($("groupLimitMin").value);
+    if (!opt || !opt.value) { setMsg("groupLimitMsg", "Choose an app first.", true); return; }
+    if (!(minutes >= 1 && minutes <= 1440)) { setMsg("groupLimitMsg", ERRORS.BAD_MINUTES, true); return; }
+    setMsg("groupLimitMsg", "Saving…");
+    try {
+      await api.setLimit(groupId, null, opt.value, opt.dataset.name, Math.round(minutes));
+      limitList = await api.limits(groupId);
+      renderSettings();
+      setMsg("groupLimitMsg", `${opt.dataset.name} is now limited to ${dur(minutes * 60)} a day for the whole group.`);
+    } catch (err) { setMsg("groupLimitMsg", errText(err), true); }
+  });
+
   // ---- detail ----
-  let currentPid = null;
   async function openDetail(pid) {
     const r = rows.find((x) => x.participant_id === pid);
     if (!r) return;
+    const sameStudent = currentPid === pid && view === "detail";
     currentPid = pid; view = "detail";
     const root = $("detailView");
-    root.replaceChildren(el("p", "muted", "Loading…"));
+    if (!sameStudent) { root.replaceChildren(el("p", "muted", "Loading…")); window.scrollTo(0, 0); }
     showOnly("detailView");
-    window.scrollTo(0, 0);
     let days;
-    try { days = await api.days(pid); } catch (err) { root.replaceChildren(emptyState("Couldn't load this report", err.message || String(err))); return; }
+    try { days = await api.days(pid); } catch (err) { root.replaceChildren(emptyState("Couldn't load this report", errText(err))); return; }
     renderDetail(r, days);
   }
 
+  let selectedDay = null;
+
   function renderDetail(r, days) {
     const root = $("detailView");
-    const back = el("button", "btn back", "← All participants");
-    back.type = "button";
-    back.addEventListener("click", () => { view = "board"; currentPid = null; showOnly("boardView"); renderBoard(); });
+    const back = button("← All participants", "btn back", () => { view = "board"; currentPid = null; selectedDay = null; showOnly("boardView"); renderBoard(); renderSettings(); });
 
     const head = el("div", "detail-head");
     const left = el("div");
@@ -582,12 +896,39 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     const meta = el("div", "meta");
     const s = syncState(r.last_sync_at);
     meta.append(chip(s.cls, r.last_sync_at ? "Last report " + s.text : "No report yet"));
+    if (r.stopped_at) meta.append(chip("crit", `Stopped sharing ${ago(r.stopped_at)}`));
+    meta.append(chip(r.watcher_on === false ? "warn" : r.watcher_on ? "good" : "info",
+      r.watcher_on === false ? "Timers & websites off" : r.watcher_on ? "Timers & websites on" : "Old app version",
+      "WellShare's Accessibility switch on the phone: needed for app timers and website tracking."));
+    if (r.usage_access_on === false) meta.append(chip("warn", "Usage access off"));
     meta.append(chip(r.id_source === "drm" ? "good" : "warn", r.id_source === "drm" ? "Phone verified" : "Weaker phone ID",
       r.id_source === "drm" ? "Linked using the phone's hardware DRM id: the same on every user profile." : "This phone has no DRM id, so a second user profile on it could register separately."));
-    meta.append(el("span", null, `${r.device_model || "Unknown phone"} · joined ${new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`));
+    meta.append(el("span", null, `${r.device_model || "Unknown phone"}${r.app_version ? " · app " + r.app_version : ""} · joined ${new Date(r.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`));
     head.append(left, meta);
 
-    // stat tiles from the 30 days
+    const stack = el("div", "detail-stack");
+
+    // SOS history for this student
+    const mySos = sosList.filter((x) => x.participant_id === r.participant_id);
+    if (mySos.length) {
+      const p = el("section", "panel");
+      p.append(el("h3", null, "SOS alerts"), el("div", "sub", "Last 30 days"));
+      const ul = el("ul", "sos-hist");
+      for (const x of mySos) {
+        const li = el("li");
+        li.append(chip(x.acknowledged_at ? "good" : "crit", x.acknowledged_at ? "Handled" : "Open"));
+        li.append(el("span", null, new Date(x.created_at).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })));
+        if (x.lat != null && x.lon != null) {
+          const a = el("a", null, `Location${x.accuracy_m ? ` (±${Math.round(x.accuracy_m)} m)` : ""}`);
+          a.href = mapLink(x.lat, x.lon); a.target = "_blank"; a.rel = "noopener"; li.append(a);
+        } else li.append(el("span", "note", "No location"));
+        ul.append(li);
+      }
+      p.append(ul);
+      stack.append(p);
+    }
+
+    // stat tiles
     const byDay = new Map(days.map((d) => [d.day, d]));
     const last7 = Array.from({ length: 7 }, (_, i) => byDay.get(addDays(todayIso, i - 6))).filter(Boolean);
     const avg = (arr, f) => arr.length ? Math.round(arr.reduce((a, x) => a + (f(x) || 0), 0) / arr.length) : null;
@@ -602,16 +943,53 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
       ["After midnight", last7.length ? dur(avg(last7, (x) => x.night_sec)) : "–", "average per night, 00:00–05:00"],
     ];
     stats.replaceChildren(...tiles.map(([l, v, n]) => { const x = el("div", "stat"); x.append(el("div", "label", l), el("div", "value", v), el("div", "note", n)); return x; }));
+    stack.append(stats);
 
-    // chart + apps
+    // chart + 7-day apps
     const grid = el("div", "grid-2");
     const chartPanel = el("section", "panel");
-    chartPanel.append(el("h3", null, "Screen time per day"), el("div", "sub", "Each bar is one day, ending today. The line is the group's 7-day average."));
+    chartPanel.append(el("h3", null, "Screen time per day"), el("div", "sub", "Tap a bar to see that day's apps and websites below. The line is the group's 7-day average."));
     const chartSlot = el("div"); chartPanel.appendChild(chartSlot);
     const appsPanel = el("section", "panel");
     appsPanel.append(el("h3", null, "Top apps"), el("div", "sub", "Total over the last 7 days"));
-    appsPanel.appendChild(topApps(last7));
+    appsPanel.appendChild(barList(totalsOver(last7, "apps", "pkg"), last7.length, false));
     grid.append(chartPanel, appsPanel);
+    stack.append(grid);
+
+    // day detail: top 5 apps + top 5 websites
+    const withData = days.filter((d) => d.screen_time_sec > 0).map((d) => d.day).reverse();
+    if (!selectedDay || !byDay.has(selectedDay)) selectedDay = withData[0] || todayIso;
+    const dayPanel = el("section", "panel");
+    dayPanel.append(el("h3", null, "Each day: top 5 apps and websites"),
+      el("div", "sub", "Websites come from Chrome and similar browsers (site names only)."));
+    const chips = el("div", "day-chips"); chips.setAttribute("role", "group"); chips.setAttribute("aria-label", "Choose a day");
+    const dayBody = el("div");
+    const drawDay = () => {
+      for (const c of chips.children) c.setAttribute("aria-pressed", String(c.dataset.day === selectedDay));
+      const d = byDay.get(selectedDay);
+      const split = el("div", "split-2");
+      const a = el("div"); a.append(el("h4", null, "Apps"));
+      a.append(d && (d.apps || []).length ? barList((d.apps || []).slice(0, 5).map((x) => ({ name: x.name, sec: x.sec })), 0, false)
+        : el("p", "note", "No app data for this day."));
+      const w = el("div"); w.append(el("h4", null, "Websites"));
+      const sites = (d && d.sites) || [];
+      w.append(sites.length ? barList(sites.slice(0, 5).map((x) => ({ name: x.domain, sec: x.sec })), 0, true)
+        : el("p", "note", r.watcher_on === false ? "Website tracking is switched off on this phone." : r.watcher_on == null ? "This phone runs an old app version without website tracking." : "No websites recorded for this day."));
+      split.append(a, w);
+      dayBody.replaceChildren(el("p", "note", d ? `${niceDate(selectedDay)} · screen time ${dur(d.screen_time_sec)}` : niceDate(selectedDay)), split);
+      if (redrawChart) redrawChart();
+    };
+    for (const day of withData.slice(0, 14)) {
+      const c = el("button", "day-chip"); c.type = "button"; c.dataset.day = day;
+      c.append(el("span", null, day === todayIso ? "Today" : dow(day)), el("b", null, String(dayNum(day))), el("span", "h", hours1(byDay.get(day).screen_time_sec) + "h"));
+      c.addEventListener("click", () => { selectedDay = day; drawDay(); });
+      chips.append(c);
+    }
+    dayPanel.append(chips, dayBody);
+    stack.append(dayPanel);
+
+    // app timers
+    stack.append(timersPanel(r, days, t));
 
     // table view (also the accessible version of the chart)
     const tablePanel = el("section", "panel");
@@ -619,29 +997,106 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     const tb = el("div", "days-box");
     const table = el("table", "days");
     const hrow = el("tr");
-    [["Day", ""], ["Screen time", "n"], ["Unlocks", "n"], ["After midnight", "n"], ["Most used app", ""]].forEach(([h, c]) => hrow.appendChild(el("th", c, h)));
+    [["Day", ""], ["Screen time", "n"], ["Unlocks", "n"], ["After midnight", "n"], ["Most used app", ""], ["Top website", ""]].forEach(([h, c]) => hrow.appendChild(el("th", c, h)));
     const thead = el("thead"); thead.appendChild(hrow); table.appendChild(thead);
     const tbody = el("tbody");
     for (const d of days.slice().reverse()) {
       const tr = el("tr");
       const top = (d.apps || [])[0];
+      const site = (d.sites || [])[0];
       tr.append(el("td", null, niceDate(d.day)), el("td", "n", dur(d.screen_time_sec)), el("td", "n", d.unlocks == null ? "–" : String(d.unlocks)),
-        el("td", "n", dur(d.night_sec)), el("td", null, top ? `${top.name} (${dur(top.sec)})` : "–"));
+        el("td", "n", dur(d.night_sec)), el("td", null, top ? `${top.name} (${dur(top.sec)})` : "–"), el("td", null, site ? `${site.domain} (${dur(site.sec)})` : "–"));
       tbody.appendChild(tr);
     }
-    if (!days.length) { const tr = el("tr"); const td = el("td", null, "No reports yet. Ask the student to open WellShare and tap “Send to mentor now”."); td.colSpan = 5; tr.appendChild(td); tbody.appendChild(tr); }
+    if (!days.length) { const tr = el("tr"); const td = el("td", null, "No reports yet. Ask the student to open WellShare and tap “Sync now”."); td.colSpan = 6; tr.appendChild(td); tbody.appendChild(tr); }
     table.appendChild(tbody); tb.appendChild(table); tablePanel.appendChild(tb);
+    stack.append(tablePanel);
 
-    // reset
+    stack.append(resetPanel(r));
+
+    root.replaceChildren(back, head, stack);
+    const draw = () => chartSlot.replaceChildren(dailyChart(byDay, ga, chartSlot.clientWidth, (day) => { if (byDay.has(day)) { selectedDay = day; drawDay(); } }));
+    redrawChart = draw;
+    drawDay();
+  }
+  let redrawChart = null, resizeTimer = 0;
+  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (view === "detail" && redrawChart) redrawChart(); }, 150); });
+
+  function timersPanel(r, days, today) {
+    const p = el("section", "panel");
+    p.append(el("h3", null, "App timers"),
+      el("div", "sub", `When a timer runs out, WellShare closes that app on ${firstName(r.full_name)}'s phone until midnight. Changes reach the phone within about an hour.`));
+    if (r.watcher_on === false) p.append(el("p", "form-msg err", "Timers are switched off on this phone (Accessibility is off). They start working again when it's turned back on."));
+    else if (r.watcher_on == null) p.append(el("p", "form-msg err", "This phone runs an old app version that can't enforce timers. Ask the student to install the latest version."));
+
+    const mine = limitList.filter((l) => l.participant_id === r.participant_id);
+    const group = limitList.filter((l) => !l.participant_id);
+    const minePkgs = new Set(mine.map((l) => l.pkg));
+    const usedToday = new Map(((today && today.apps) || []).map((a) => [a.pkg, a.sec]));
+    const ul = el("ul", "limit-list");
+    const all = [...mine.map((l) => ({ l, scope: "only" })), ...group.map((l) => ({ l, scope: "group" }))]
+      .sort((a, b) => (a.l.app_name || "").localeCompare(b.l.app_name || ""));
+    for (const { l, scope } of all) {
+      const replaced = scope === "group" && minePkgs.has(l.pkg);
+      const li = el("li");
+      const used = usedToday.get(l.pkg) || 0;
+      const over = used >= l.minutes * 60;
+      li.append(el("span", "ln", l.app_name || l.pkg));
+      li.append(el("span", "lm" + (replaced ? " replaced" : ""),
+        `${dur(l.minutes * 60)} per day · ${scope === "only" ? "only " + firstName(r.full_name) : "whole group"}${replaced ? " (replaced by personal timer)" : ""}`));
+      if (!replaced) li.append(el("span", "lm" + (over ? " over" : ""), over ? `Today: limit reached (${dur(used)}). Blocked until midnight.` : `Today: ${dur(used)} used`));
+      if (scope === "only") {
+        const rm = button("Remove", "btn small act", async () => {
+          rm.disabled = true;
+          try { await api.removeLimit(l.id); limitList = await api.limits(groupId); openDetail(r.participant_id); }
+          catch (err) { rm.disabled = false; setLocal(msg, errText(err), true); }
+        });
+        li.append(rm);
+      } else {
+        li.append(el("span", "note act", "Group timer"));
+      }
+      ul.append(li);
+    }
+    if (!all.length) ul.append(el("li", "note", "No timers yet."));
+    p.append(ul);
+
+    const form = el("form", "form-row"); form.noValidate = true;
+    const sel = el("select", "field"); sel.id = "studentLimitApp"; sel.setAttribute("aria-label", "App");
+    fillAppSelect(sel, appTotals(days), minePkgs);
+    const min = el("input", "field num"); min.id = "studentLimitMin"; min.type = "number"; min.min = "1"; min.max = "1440"; min.step = "5"; min.value = "60"; min.setAttribute("aria-label", "Minutes per day");
+    const scopeSel = el("select", "field"); scopeSel.id = "studentLimitScope"; scopeSel.setAttribute("aria-label", "Who it applies to");
+    scopeSel.append(Object.assign(el("option", null, `Only ${firstName(r.full_name)}`), { value: "only" }), Object.assign(el("option", null, "Whole group"), { value: "group" }));
+    const submit = el("button", "btn primary", "Set timer"); submit.type = "submit";
+    form.append(sel, min, el("span", "note", "min/day"), scopeSel, submit);
+    const msg = el("div", "form-msg"); msg.setAttribute("role", "status");
+    const setLocal = (m, text, isErr) => { m.textContent = text; m.classList.toggle("err", !!isErr); };
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const opt = sel.selectedOptions[0];
+      const minutes = Number(min.value);
+      if (!opt || !opt.value) { setLocal(msg, "Choose an app first.", true); return; }
+      if (!(minutes >= 1 && minutes <= 1440)) { setLocal(msg, ERRORS.BAD_MINUTES, true); return; }
+      submit.disabled = true; setLocal(msg, "Saving…");
+      try {
+        await api.setLimit(groupId, scopeSel.value === "only" ? r.participant_id : null, opt.value, opt.dataset.name, Math.round(minutes));
+        limitList = await api.limits(groupId);
+        openDetail(r.participant_id);
+      } catch (err) { submit.disabled = false; setLocal(msg, errText(err), true); }
+    });
+    p.append(form, msg, el("p", "note", "Only apps this student used in the last 30 days are listed. Calls, messages and Settings can't be limited."));
+    return p;
+  }
+
+  function resetPanel(r) {
     const dz = el("section", "panel danger-zone");
     dz.append(el("h3", null, "Reset phone link"),
-      el("div", "sub", "Use this when a student changes phones or registered by mistake. It deletes their reports and frees both the phone and the roll number so they can register again."));
-    const resetBtn = el("button", "btn danger", "Reset phone link…"); resetBtn.type = "button"; resetBtn.style.marginTop = "10px";
+      el("div", "sub", "Use this when a student changes phones or registered by mistake. It deletes their reports, timers and SOS history and frees both the phone and the roll number so they can register again."));
+    const resetBtn = button("Reset phone link…", "btn danger"); resetBtn.style.marginTop = "10px";
     const confirmBox = el("div", "confirm"); confirmBox.hidden = true;
     const lbl = el("label", null, `Type ${r.roll_no} to confirm`); lbl.style.fontSize = "14px"; lbl.style.fontWeight = "600";
     const inp = el("input", "field"); inp.id = "confirmRoll"; inp.autocomplete = "off"; lbl.htmlFor = "confirmRoll";
-    const go = el("button", "btn danger solid", "Delete reports and reset"); go.type = "button"; go.disabled = true;
-    const cancel = el("button", "btn", "Cancel"); cancel.type = "button";
+    const go = button("Delete reports and reset", "btn danger solid"); go.disabled = true;
+    const cancel = button("Cancel", "btn");
     const msg = el("div", "sub");
     const row = el("div", "row"); row.append(go, cancel);
     confirmBox.append(lbl, inp, row, msg);
@@ -652,21 +1107,15 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
       go.disabled = true; msg.textContent = "Resetting…";
       try {
         await api.remove(r.participant_id);
-        view = "board"; currentPid = null;
-        await loadOverview();
-      } catch (err) { msg.textContent = "Couldn't reset: " + (err.message || err); go.disabled = false; }
+        view = "board"; currentPid = null; groupAppsCache = null;
+        await loadAll();
+      } catch (err) { msg.textContent = "Couldn't reset: " + errText(err); go.disabled = false; }
     });
     dz.append(resetBtn, confirmBox);
-
-    root.replaceChildren(back, head, stats, grid, tablePanel, dz);
-    const draw = () => chartSlot.replaceChildren(dailyChart(byDay, ga, chartSlot.clientWidth));
-    draw();
-    redrawChart = draw;
+    return dz;
   }
-  let redrawChart = null, resizeTimer = 0;
-  window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (view === "detail" && redrawChart) redrawChart(); }, 150); });
 
-  function dailyChart(byDay, groupAvgSec, width) {
+  function dailyChart(byDay, groupAvgSec, width, onPick) {
     const W = Math.max(280, Math.round(width || 640));
     const N = W < 460 ? 14 : 30, H = W < 460 ? 190 : 220, L = 34, R = 8, T = 14, B = 26;
     const days = Array.from({ length: N }, (_, i) => addDays(todayIso, i - N + 1));
@@ -689,10 +1138,11 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
         const top = y(v), base = y(0), hgt = Math.max(1, base - top), rr = Math.min(4, hgt, bw / 2);
         const path = `M${x},${base} V${top + rr} Q${x},${top} ${x + rr},${top} H${x + bw - rr} Q${x + bw},${top} ${x + bw},${top + rr} V${base} Z`;
         const hit = svg("rect", { x: L + slot * i, y: T, width: slot, height: H - T - B, class: "hit" });
-        const bar = svg("path", { d: path, class: "bar" + (d === todayIso ? " today" : "") });
+        const bar = svg("path", { d: path, class: "bar" + (d === todayIso ? " today" : "") + (d === selectedDay ? " sel" : "") });
         const rec = byDay.get(d);
         hit.addEventListener("pointerenter", () => showTip(bar, niceDate(d), [`Screen time ${dur(v)}`, `Unlocks ${rec.unlocks ?? "–"}`, `After midnight ${dur(rec.night_sec)}`]));
         hit.addEventListener("pointerleave", hideTip);
+        if (onPick) hit.addEventListener("click", () => onPick(d));
         s.append(hit, bar);
       }
       if ((N - 1 - i) % (N > 14 ? 5 : 3) === 0) {
@@ -709,19 +1159,24 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     return s;
   }
 
-  function topApps(last7) {
+  /** Totals over several days of [{apps|sites}] keyed by pkg/domain. */
+  function totalsOver(daysArr, field, keyField) {
     const tot = new Map();
-    for (const d of last7) for (const a of d.apps || []) {
-      const k = a.pkg || a.name; const cur = tot.get(k) || { name: a.name, sec: 0 }; cur.sec += a.sec || 0; tot.set(k, cur);
+    for (const d of daysArr) for (const a of d[field] || []) {
+      const k = a[keyField] || a.name; const cur = tot.get(k) || { name: a.name || a.domain, sec: 0 }; cur.sec += a.sec || 0; tot.set(k, cur);
     }
-    const list = [...tot.values()].sort((a, b) => b.sec - a.sec).slice(0, 8);
-    if (!list.length) return el("p", "muted", "No app data in the last 7 days.");
+    return [...tot.values()].sort((a, b) => b.sec - a.sec).slice(0, 8);
+  }
+
+  /** Horizontal bars: [{name, sec}]. perDayOver>0 adds "x/day". */
+  function barList(list, perDayOver, isSite) {
+    if (!list.length) return el("p", "muted", "No data.");
     const max = list[0].sec || 1;
     const ul = el("ul", "apps");
     for (const a of list) {
       const li = el("li");
-      const track = el("div", "track"); const fill = el("div", "fill"); fill.style.width = Math.max(2, (a.sec / max) * 100) + "%"; track.appendChild(fill);
-      li.append(el("span", "an", a.name), el("span", "av", `${dur(a.sec)} · ${dur(Math.round(a.sec / Math.max(1, last7.length)))}/day`), track);
+      const track = el("div", "track"); const fill = el("div", "fill" + (isSite ? " site" : "")); fill.style.width = Math.max(2, (a.sec / max) * 100) + "%"; track.appendChild(fill);
+      li.append(el("span", "an", a.name), el("span", "av", perDayOver ? `${dur(a.sec)} · ${dur(Math.round(a.sec / Math.max(1, perDayOver)))}/day` : dur(a.sec)), track);
       ul.appendChild(li);
     }
     return ul;
@@ -750,6 +1205,8 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
       ["com.spotify.music", "Spotify"], ["org.telegram.messenger", "Telegram"], ["com.netflix.mediaclient", "Netflix"],
       ["com.google.android.apps.classroom", "Google Classroom"], ["com.google.android.apps.maps", "Maps"], ["com.linkedin.android", "LinkedIn"],
     ];
+    const SITES = ["youtube.com", "google.com", "wikipedia.org", "instagram.com", "reddit.com", "cricbuzz.com", "amazon.in",
+      "flipkart.com", "github.com", "stackoverflow.com", "geeksforgeeks.org", "x.com"];
     const people = [
       ["Aarav Sharma", "CS24-011", 5.4, 0.9, [1, 0, 4, 2]], ["Ishita Rao", "CS24-014", 3.1, 0.2, [0, 2, 6, 9]],
       ["Kabir Menon", "CS24-019", 7.6, 1.6, [4, 1, 7, 0]], ["Meera Iyer", "CS24-023", 2.4, 0.1, [2, 9, 3, 6]],
@@ -762,8 +1219,9 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
     const parts = people.map(([name, roll, base, night, fav], idx) => {
       const pid = "demo-" + idx;
       const joinedDaysAgo = idx === 11 ? 4 : 30;
-      const lastSyncHours = idx === 7 ? 50 : idx === 9 ? 130 : 0.3 + rnd() * 5;
-      const stopDaysAgo = idx === 9 ? 5 : idx === 7 ? 2 : 0;
+      const lastSyncHours = idx === 7 ? 26 : idx === 9 ? 130 : 0.1 + rnd() * 1.4;
+      const stopDaysAgo = idx === 9 ? 5 : idx === 7 ? 1 : 0;
+      const siteFav = [idx % 12, (idx * 5 + 3) % 12, (idx * 7 + 1) % 12];
       const days = [];
       for (let i = 29; i >= 0; i--) {
         if (i >= joinedDaysAgo || i < stopDaysAgo) continue;
@@ -774,20 +1232,30 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
         let hrs = Math.max(0.6, base * weekend * exam * (0.75 + rnd() * 0.5));
         if (i === 0) hrs *= 0.62; // today is not over yet
         const sec = Math.round(hrs * 3600);
-        const nightSec = Math.round(Math.min(sec * 0.35, night * 3600 * (0.4 + rnd() * 1.2) * (i === 0 ? 1 : 1)));
+        const nightSec = Math.round(Math.min(sec * 0.35, night * 3600 * (0.4 + rnd() * 1.2)));
         const weights = APPS.map((_, k) => (fav.includes(k) ? 6 - fav.indexOf(k) : 0.35) * (0.6 + rnd() * 0.8));
         const wsum = weights.reduce((a, b) => a + b, 0);
         const apps = APPS.map(([pkg, nm], k) => ({ pkg, name: nm, sec: Math.round(sec * weights[k] / wsum), opens: Math.round(2 + rnd() * 30) }))
           .sort((a, b) => b.sec - a.sec).slice(0, 10);
-        days.push({ participant_id: pid, day, screen_time_sec: sec, unlocks: Math.round(45 + base * 12 * (0.7 + rnd() * 0.6) * (i === 0 ? 0.6 : 1)), night_sec: nightSec, apps });
+        const chrome = (apps.find((a) => a.pkg === "com.android.chrome") || { sec: 0 }).sec + Math.round(600 + rnd() * 900);
+        const sw = SITES.map((_, k) => (siteFav.includes(k) ? 5 - siteFav.indexOf(k) : 0.3) * (0.5 + rnd()));
+        const ssum = sw.reduce((a, b) => a + b, 0);
+        const sites = idx === 3 ? [] : SITES.map((domain, k) => ({ domain, sec: Math.round(chrome * sw[k] / ssum) }))
+          .sort((a, b) => b.sec - a.sec).slice(0, 10);
+        days.push({ participant_id: pid, day, screen_time_sec: sec, unlocks: Math.round(45 + base * 12 * (0.7 + rnd() * 0.6) * (i === 0 ? 0.6 : 1)), night_sec: nightSec, apps, sites });
       }
       return {
         row: {
           participant_id: pid, full_name: name, roll_no: roll,
           device_model: ["Redmi Note 13", "Samsung Galaxy M34", "Realme 12 Pro", "OnePlus Nord CE 4", "Vivo T3", "Poco X6", "Motorola G85", "Samsung Galaxy A35"][idx % 8],
           id_source: idx === 5 ? "android_id" : "drm",
+          app_version: idx === 1 ? "0.1.0" : "0.2.0",
           created_at: new Date(now - joinedDaysAgo * 864e5).toISOString(),
           last_sync_at: new Date(now - lastSyncHours * 3.6e6).toISOString(),
+          usage_access_on: true,
+          watcher_on: idx === 1 ? null : idx === 3 ? false : true,
+          notifications_on: true,
+          stopped_at: idx === 9 ? new Date(now - 130 * 3.6e6).toISOString() : null,
         },
         days,
       };
@@ -805,11 +1273,40 @@ table.days { border-collapse: collapse; width: 100%; font-size: 13.5px; }
       };
     };
     let live = parts.slice();
+    let nextId = 100;
+    const group = { id: "demo-group", name: "Boys Hostel · Block A", join_code: "BLOCKA25", sos_phone: "+919876543210" };
+    let limits = [
+      { id: "l1", participant_id: null, pkg: "com.instagram.android", app_name: "Instagram", minutes: 60 },
+      { id: "l2", participant_id: null, pkg: "com.pubg.imobile", app_name: "BGMI", minutes: 45 },
+      { id: "l3", participant_id: "demo-2", pkg: "com.google.android.youtube", app_name: "YouTube", minutes: 90 },
+      { id: "l4", participant_id: "demo-2", pkg: "com.instagram.android", app_name: "Instagram", minutes: 30 },
+    ];
+    let sos = [
+      { id: "s1", participant_id: "demo-6", full_name: "Tanvi Kulkarni", roll_no: "CS24-034", created_at: new Date(now - 4 * 60000).toISOString(),
+        lat: 12.9716, lon: 77.5946, accuracy_m: 18, location_at: new Date(now - 4 * 60000).toISOString(), acknowledged_at: null },
+      { id: "s2", participant_id: "demo-4", full_name: "Rohan Das", roll_no: "CS24-027", created_at: new Date(now - 3 * 864e5).toISOString(),
+        lat: 12.9352, lon: 77.6245, accuracy_m: 35, location_at: new Date(now - 3 * 864e5).toISOString(), acknowledged_at: new Date(now - 3 * 864e5 + 5 * 60000).toISOString() },
+    ];
     return {
-      groups: [{ id: "demo-group", name: "Boys Hostel · Block A", join_code: "BLOCKA25" }],
+      groups: [group],
       overview: async () => live.map(summarize).sort((a, b) => a.full_name.localeCompare(b.full_name)),
       days: async (pid) => (live.find((p) => p.row.participant_id === pid)?.days || []).slice(),
-      remove: (pid) => { live = live.filter((p) => p.row.participant_id !== pid); },
+      sos: async () => sos.filter((s) => live.some((p) => p.row.participant_id === s.participant_id)).map((s) => ({ ...s })),
+      ackSos: async (id) => { const s = sos.find((x) => x.id === id); if (s && !s.acknowledged_at) s.acknowledged_at = new Date().toISOString(); return { ok: true }; },
+      limits: async () => limits.map((l) => ({ ...l })),
+      setLimit: async (pid, pkg, name, minutes) => {
+        const cur = limits.find((l) => l.pkg === pkg && l.participant_id === pid);
+        if (cur) { cur.minutes = minutes; return cur.id; }
+        const id = "l" + nextId++; limits.push({ id, participant_id: pid, pkg, app_name: name, minutes }); return id;
+      },
+      removeLimit: async (id) => { limits = limits.filter((l) => l.id !== id); return { ok: true }; },
+      setSosPhone: async (phone) => {
+        const p = String(phone || "").replace(/[\s().-]/g, "");
+        if (p && !/^\+?[0-9]{6,15}$/.test(p)) throw new Error("BAD_PHONE");
+        group.sos_phone = p || null; return { sos_phone: group.sos_phone };
+      },
+      groupApps: async () => live.flatMap((p) => p.days.slice(-14)).map((d) => ({ apps: d.apps })),
+      remove: (pid) => { live = live.filter((p) => p.row.participant_id !== pid); limits = limits.filter((l) => l.participant_id !== pid); sos = sos.filter((s) => s.participant_id !== pid); },
     };
   })();
 

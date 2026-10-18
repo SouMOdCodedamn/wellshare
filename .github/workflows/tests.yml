@@ -22,7 +22,7 @@ jobs:
           npm install --no-audit --no-fund
           npm test
 
-  usage-math:
+  app-logic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +40,9 @@ jobs:
           ../kotlinc/bin/kotlinc app/src/main/java/org/wellshare/app/UsageMath.kt \
             app/src/test/java/org/wellshare/app/UsageMathTest.kt -include-runtime -d usage-test.jar
           java -cp usage-test.jar org.wellshare.app.UsageMathTestKt
+      - name: Run website-name tests
+        working-directory: android
+        run: |
+          ../kotlinc/bin/kotlinc app/src/main/java/org/wellshare/app/SiteMath.kt \
+            app/src/test/java/org/wellshare/app/SiteMathTest.kt -include-runtime -d site-test.jar
+          java -cp site-test.jar org.wellshare.app.SiteMathTestKt
