@@ -306,6 +306,10 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
       <strong>Demo data.</strong>
       <span>These students are made up, and changes here aren't saved. Connect your Supabase project (see the guide) to see real reports.</span>
     </div>
+    <div class="banner" id="dbBanner" hidden>
+      <strong>One step left:</strong>
+      <span>run the latest <code>supabase/schema.sql</code> in the Supabase SQL Editor (paste all of it, then Run). It turns on SOS, app timers and websites and keeps all existing data.</span>
+    </div>
     <section class="alerts" id="alerts" hidden></section>
     <div class="stats" id="stats"></div>
     <div class="controls">
@@ -473,6 +477,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
   let limitList = [];   // app_limits rows for the group
   let view = "board";
   let currentPid = null;
+  let dbOutdated = false;   // database still on the first version (run the new schema.sql)
 
   const rpc = async (fn, args) => {
     const { data, error } = await sb.rpc(fn, args);
@@ -482,7 +487,12 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
   const api = {
     async groups() {
       if (demo) return DEMO.groups;
-      const { data, error } = await sb.from("groups").select("id,name,join_code,sos_phone").order("name");
+      let { data, error } = await sb.from("groups").select("id,name,join_code,sos_phone").order("name");
+      if (error) {
+        // database not upgraded yet (no sos_phone column): fall back to the old columns
+        ({ data, error } = await sb.from("groups").select("id,name,join_code").order("name"));
+        if (!error) dbOutdated = true;
+      }
       if (error) throw error;
       return data;
     },
@@ -580,7 +590,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
     const box = $("registerBox");
     box.classList.add("loading");
     try {
-      [rows, sosList, limitList] = await Promise.all([api.overview(groupId), api.sos(groupId), api.limits(groupId)]);
+      await fetchGroupData();
     } catch (err) { box.classList.remove("loading"); return fatal(err); }
     box.classList.remove("loading");
     const g = currentGroup();
@@ -591,6 +601,18 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
     else { view = "board"; currentPid = null; showOnly("boardView"); renderBoard(); }
   }
 
+  /** Overview is required; SOS and timers only exist once the database is upgraded. */
+  async function fetchGroupData() {
+    const [ov, s, l] = await Promise.allSettled([api.overview(groupId), api.sos(groupId), api.limits(groupId)]);
+    if (ov.status === "rejected") throw ov.reason;
+    rows = ov.value;
+    if (s.status === "rejected" || l.status === "rejected") dbOutdated = true;
+    sosList = s.status === "fulfilled" ? s.value : [];
+    limitList = l.status === "fulfilled" ? l.value : [];
+    $("dbBanner").hidden = !dbOutdated;
+    $("settings").hidden = dbOutdated;
+  }
+
   /** Every minute: new SOS presses and reports, without disturbing what the mentor is doing. */
   let refreshTimer = 0;
   function startAutoRefresh() {
@@ -599,8 +621,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
       if (document.visibilityState !== "visible" || !groupId || !$("loginView").hidden) return;
       try {
         todayIso = isoDay(new Date());
-        const [r, s, l] = await Promise.all([api.overview(groupId), api.sos(groupId), api.limits(groupId)]);
-        rows = r; sosList = s; limitList = l;
+        await fetchGroupData();
         renderSos();
         if (view === "board") {
           renderBoard();
@@ -674,7 +695,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
       else if (hrs > NOT_REPORTING_HOURS) out.push({ cls: "crit", r, rank: 2, text: `No report for ${hrs < 48 ? Math.round(hrs) + " hours" : Math.round(hrs / 24) + " days"}. The app may be uninstalled, or the phone is off or offline.` });
       if (r.usage_access_on === false) out.push({ cls: "warn", r, rank: 3, text: "Turned off usage access, so screen time isn't being shared." });
       if (r.watcher_on === false) out.push({ cls: "warn", r, rank: 3, text: "Turned off app timers and website tracking (Accessibility)." });
-      if (r.watcher_on == null && r.last_sync_at && !r.stopped_at) out.push({ cls: "info", r, rank: 4, text: "Using an old app version without timers or websites. Ask them to install the latest one." });
+      if (!dbOutdated && r.watcher_on == null && r.last_sync_at && !r.stopped_at) out.push({ cls: "info", r, rank: 4, text: "Using an old app version without timers or websites. Ask them to install the latest one." });
     }
     return out.sort((a, b) => a.rank - b.rank || a.r.full_name.localeCompare(b.r.full_name));
   }
@@ -818,7 +839,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
 
   function renderSettings() {
     const g = currentGroup();
-    if (!g) return;
+    if (!g || dbOutdated) return;
     $("settings").hidden = false;
     if (document.activeElement !== $("sosPhone")) $("sosPhone").value = g.sos_phone || "";
     $("settingsHint").textContent = g.sos_phone ? "" : "SOS number not set";
@@ -989,7 +1010,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
     stack.append(dayPanel);
 
     // app timers
-    stack.append(timersPanel(r, days, t));
+    if (!dbOutdated) stack.append(timersPanel(r, days, t));
 
     // table view (also the accessible version of the chart)
     const tablePanel = el("section", "panel");
