@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
@@ -73,6 +74,7 @@ class MainActivity : Activity() {
             return
         }
         if (!prefs.safetyAsked) { showSafety(); return }
+        if (!prefs.backgroundAsked && !runsInBackground()) { showBackground(); return }
         showHome(autoSync = System.currentTimeMillis() - prefs.lastSyncAt > 15 * 60 * 1000L)
         if (sosRequested) {
             sosRequested = false
@@ -388,6 +390,52 @@ class MainActivity : Activity() {
         if (!sosActive) render()
     }
 
+    // ---------- Run in the background ----------
+
+    /** True when Android's battery optimisation won't hold back WellShare's hourly sync. */
+    private fun runsInBackground(): Boolean =
+        getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(packageName) == true
+
+    private fun askBackground() {
+        prefs.backgroundAsked = true
+        try {
+            @Suppress("BatteryLife")
+            startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName")))
+        } catch (_: Exception) {
+            try { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) } catch (_: Exception) { openAppInfo() }
+        }
+    }
+
+    private fun showBackground() {
+        val col = ui.column(24)
+        col.addView(ui.small("ONE LAST THING"))
+        col.addView(ui.gap(6))
+        col.addView(ui.title("Let WellShare run in the background"))
+        col.addView(ui.gap(12))
+        col.addView(ui.body("So your reports reach your mentor automatically every hour, without you opening the app. " +
+            "Android otherwise delays apps you don't open often, sometimes for days."))
+        col.addView(ui.gap(16))
+        col.addView(ui.button("Allow") { askBackground() }, ui.fullWidth())
+        col.addView(ui.gap(16))
+        val oem = ui.card()
+        oem.addView(ui.heading("Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus?"))
+        oem.addView(ui.gap(6))
+        oem.addView(ui.body("These phones have an extra battery saver. After tapping Allow:"))
+        oem.addView(ui.gap(6))
+        oem.addView(ui.body("1.  Tap \"Open app info\" below"))
+        oem.addView(ui.body("2.  Battery (or Battery saver) → No restrictions / Unrestricted"))
+        oem.addView(ui.body("3.  If you see \"Autostart\", turn it on"))
+        oem.addView(ui.gap(12))
+        oem.addView(ui.button("Open app info", primary = false) { openAppInfo() }, ui.fullWidth())
+        col.addView(oem, ui.fullWidth())
+        col.addView(ui.gap(16))
+        col.addView(ui.button("Done", primary = false) {
+            prefs.backgroundAsked = true
+            render()
+        }, ui.fullWidth())
+        setScreen(col)
+    }
+
     // ---------- Home: the student's own report ----------
 
     private fun showHome(autoSync: Boolean) {
@@ -421,6 +469,11 @@ class MainActivity : Activity() {
         if (!watcherOn) {
             col.addView(ui.banner("App timers and website tracking are off. Your mentor can see this.",
                 "Turn on in Accessibility") { openAccessibilitySettings() }, ui.fullWidth())
+            col.addView(ui.gap(12))
+        }
+        if (!runsInBackground()) {
+            col.addView(ui.banner("Automatic sharing may be delayed: Android is limiting WellShare in the background.",
+                "Let WellShare run in the background") { askBackground() }, ui.fullWidth())
             col.addView(ui.gap(12))
         }
         if (Build.VERSION.SDK_INT >= 33 && !Notify.allowed(this)) {
@@ -588,6 +641,7 @@ class MainActivity : Activity() {
                         prefs.clearRegistration()
                         prefs.consented = false
                         prefs.safetyAsked = false
+                        prefs.backgroundAsked = false
                         render()
                     }
                 }.start()

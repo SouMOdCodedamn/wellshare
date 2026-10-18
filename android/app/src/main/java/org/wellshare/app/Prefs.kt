@@ -41,6 +41,15 @@ class Prefs(context: Context) {
         get() = sp.getLong("last_sync_at", 0L)
         set(v) = sp.edit().putLong("last_sync_at", v).apply()
 
+    var lastSyncAttemptAt: Long
+        get() = sp.getLong("last_sync_attempt_at", 0L)
+        set(v) = sp.edit().putLong("last_sync_attempt_at", v).apply()
+
+    /** The student has seen the "run in the background" request. */
+    var backgroundAsked: Boolean
+        get() = sp.getBoolean("background_asked", false)
+        set(v) = sp.edit().putBoolean("background_asked", v).apply()
+
     var lastError: String?
         get() = sp.getString("last_error", null)
         set(v) = sp.edit().putString("last_error", v).apply()

@@ -115,7 +115,7 @@ input.field { min-width: 0; }
 table.register { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13.5px; }
 .register th, .register td { padding: 0; text-align: left; white-space: nowrap; }
 .register thead th { position: sticky; top: 0; background: var(--surface); font-weight: 600; font-size: 12px; color: var(--muted); padding: 10px 6px 8px; border-bottom: 1px solid var(--line); }
-.register thead th.day { text-align: center; padding-inline: 0; min-width: 40px; }
+.register thead th.day { text-align: center; padding-inline: 0; min-width: 44px; }
 .register thead th.day .dow { display: block; font-size: 10.5px; letter-spacing: .04em; text-transform: uppercase; }
 .register thead th.day.today { color: var(--ink); }
 .register .who { position: sticky; left: 0; z-index: 1; background: var(--surface); padding: 8px 12px 8px 14px; min-width: 190px; max-width: 240px; border-right: 1px solid var(--line); }
@@ -128,7 +128,7 @@ table.register { border-collapse: separate; border-spacing: 0; width: 100%; font
 .who .roll { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
 .who button { all: unset; display: block; cursor: pointer; width: 100%; }
 td.cell { padding: 3px 1px; text-align: center; }
-td.cell .c { display: grid; place-items: center; height: 34px; margin: 0 1px; border-radius: 4px; font-family: var(--font-data); font-size: 11.5px; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--muted); }
+td.cell .c { display: grid; place-items: center; height: 34px; margin: 0 1px; border-radius: 4px; font-family: var(--font-data); font-size: 11px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; background: var(--surface-2); color: var(--muted); }
 td.cell.today .c { box-shadow: inset 0 0 0 2px var(--ink); }
 td.cell .c:hover { filter: brightness(1.06) saturate(1.05); }
 .c1 { background: var(--h1) !important; color: var(--h1i) !important; }
@@ -334,7 +334,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
         <span class="ramp"><span style="background:var(--surface-2)"></span><span style="background:var(--h1)"></span><span style="background:var(--h2)"></span><span style="background:var(--h3)"></span><span style="background:var(--h4)"></span><span style="background:var(--h5)"></span><span style="background:var(--h6)"></span><span style="background:var(--h7)"></span></span>
         <span class="ramp-labels"><span>–</span><span>&lt;1</span><span>1</span><span>2</span><span>3</span><span>4</span><span>6</span><span>8+</span></span>
       </span>
-      <span>“–” means no report that day. Today has a dark outline. Tap a student for details, app timers and websites.</span>
+      <span>Cells show hours:minutes (5:24 = 5 h 24 min). “–” means no report that day. Today has a dark outline. Tap a student for each day's apps and websites, and app timers.</span>
     </div>
 
     <details class="settings" id="settings">
@@ -404,7 +404,8 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
     if (h === 0) return `${m}m`;
     return m === 60 ? `${h + 1}h 0m` : `${h}h ${m}m`;
   };
-  const hours1 = (sec) => (sec / 3600).toFixed(1);
+  /** Exact hours:minutes, as Digital Wellbeing shows it (5:24 = 5 h 24 min). */
+  const hm = (sec) => { const m = Math.round(sec / 60); return `${Math.floor(m / 60)}:${pad(m % 60)}`; };
   const dow = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short" });
   const dayNum = (iso) => Number(iso.slice(8));
   const niceDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
@@ -793,7 +794,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
       for (const d of days) {
         const td = el("td", "cell" + (d === todayIso ? " today" : ""));
         const x = byDay.get(d);
-        const c = el("span", "c" + (x ? " c" + bin(x.sec) : ""), x ? hours1(x.sec) : "–");
+        const c = el("span", "c" + (x ? " c" + bin(x.sec) : ""), x ? hm(x.sec) : "–");
         const lines = x ? [`Screen time ${dur(x.sec)}`, `Unlocks ${x.unlocks ?? "–"}`, `After midnight ${dur(x.night || 0)}`] : ["No report for this day"];
         c.addEventListener("pointerenter", () => showTip(c, `${r.full_name} · ${niceDate(d)}`, lines));
         c.addEventListener("pointerleave", hideTip);
@@ -1002,7 +1003,7 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
     };
     for (const day of withData.slice(0, 14)) {
       const c = el("button", "day-chip"); c.type = "button"; c.dataset.day = day;
-      c.append(el("span", null, day === todayIso ? "Today" : dow(day)), el("b", null, String(dayNum(day))), el("span", "h", hours1(byDay.get(day).screen_time_sec) + "h"));
+      c.append(el("span", null, day === todayIso ? "Today" : dow(day)), el("b", null, String(dayNum(day))), el("span", "h", hm(byDay.get(day).screen_time_sec)));
       c.addEventListener("click", () => { selectedDay = day; drawDay(); });
       chips.append(c);
     }

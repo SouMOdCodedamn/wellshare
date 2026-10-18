@@ -139,7 +139,8 @@ On each student's phone:
 4. **Open Accessibility settings** → **Installed apps** (or **Downloaded apps**) → **WellShare** → turn on **Use WellShare** → **Allow**. This powers app timers and website names. Same "restricted setting" fix as above if it's greyed out.
 5. Enter the **group code**, **full name** and **roll number** → **Register this phone**.
 6. **Set up SOS** → **Allow** (calls, location only when SOS is pressed, notifications).
-7. On Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus phones: **Settings → Apps → WellShare → Battery → No restrictions / Unrestricted**, so updates keep arriving in the background.
+7. **Let WellShare run in the background** → **Allow**. Without this, Android delays apps that are rarely opened, sometimes for days.
+8. On Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus phones also: **Settings → Apps → WellShare → Battery → No restrictions / Unrestricted**, and turn on **Autostart** if the phone has it. The app shows a button for this.
 
 That's it. The phone sends the last 7 days right away and then about every hour when online.
 
@@ -149,7 +150,7 @@ That's it. The phone sends the last 7 days right away and then about every hour 
 
 - **SOS:** a red bar at the top of every screen shows new SOS alerts with a Google Maps link to the student's location. Click **Mark as handled** once you've responded; the student's phone then shows "Your mentor has seen your alert". The dashboard checks for new alerts every minute while it's open, and the browser tab title shows **(1) SOS**.
 - **Needs attention:** students with no report for 12+ hours (app uninstalled, phone off or offline), who stopped sharing, or who turned off usage access or Accessibility.
-- **Register view:** one row per student, one column per day (7, 14 or 30 days). Darker cells mean more hours. "–" means no report that day.
+- **Register view:** one row per student, one column per day (7, 14 or 30 days). Each cell shows that day's screen time as hours:minutes (5:24 = 5 h 24 min); darker means more. "–" means no report that day.
 - **Last report** chip: ✓ green = within 2 h, ⚠ yellow = up to 12 h, ✕ red = longer or never.
 - **Late-night users:** students averaging 30+ minutes between 00:00 and 05:00.
 - **Group settings** (below the register): the **SOS phone number** the SOS button calls, and **app timers for the whole group**.
@@ -200,8 +201,9 @@ Change the code, push, then publish a new release with a higher tag (`v1.0.1`, `
 | "This roll number is already linked to a different phone" | Student changed phones: mentor resets the old link, student registers again. |
 | "You aren't a mentor of any group yet" | Run `setup_group(...)` with that mentor's exact email. |
 | Student shows red "Never sent" / old date | Open the app and tap **Sync now**; check usage access and battery settings; log in to the hostel Wi-Fi portal if it has one. |
+| Reports only arrive when the student opens the app | Battery optimisation is holding the app back. In the app, tap **Let WellShare run in the background**; on Xiaomi/Realme/Vivo/Oppo/OnePlus also set Battery → **No restrictions** and turn on **Autostart**. With Accessibility on, WellShare also uploads whenever the phone is unlocked (at most hourly). |
 | App timer doesn't close the app | The student's Accessibility switch for WellShare is off (the dashboard shows "Timers off"), or the phone hasn't synced since the timer was set (wait up to an hour, or tap **Sync now**). |
-| No websites for a student | Accessibility is off, or they use a browser WellShare doesn't read (Firefox, Opera). Chrome, Brave, Edge and Samsung Internet are supported. |
+| No websites for a student | Accessibility is off, or they use a browser WellShare doesn't read. Chrome, Brave, Edge, Samsung Internet, Vivaldi and Kiwi are supported; Firefox, Opera and DuckDuckGo are best-effort. |
 | SOS button only opens the dialer | The student skipped the call permission. They can allow it in **Settings → Apps → WellShare → Permissions**. |
 | SOS shows "Location not shared" | Location permission is off or the phone's location is turned off. |
 | Can't install update ("App not installed") | The new APK was signed with a different key. Uninstall, reinstall, register again with the same roll number (history is kept). Then set up a permanent key. |
@@ -215,7 +217,7 @@ Change the code, push, then publish a new release with a higher tag (`v1.0.1`, `
 - Android keeps roughly 1–2 weeks of usage history, so a phone that is offline for longer loses the oldest days.
 - A student can always uninstall the app or turn permissions off. Android doesn't tell an app it's being uninstalled, so the dashboard detects it as **no report for 12+ hours** (the same signal as a phone that is off or offline).
 - App timers can be avoided by turning off Accessibility; the dashboard shows that immediately at the next sync. Calls, messages, Settings and the home screen are never blocked.
-- Website names are read from the address bar of Chrome, Brave, Edge and Samsung Internet only. Only the site name is kept (e.g. `youtube.com`), never full addresses or searches. Incognito tabs are included.
+- Website names are read from the address bar of Chrome, Brave, Edge, Samsung Internet, Vivaldi and Kiwi; Firefox, Opera and DuckDuckGo are best-effort. Only the site name is kept (e.g. `youtube.com`), never full addresses or searches. Incognito tabs are included.
 - Android may delay hourly syncs while the phone is idle overnight, so short gaps at night are normal.
 - Phones on Android 8 don't report unlock counts (shown as "–").
 - A few phones without a Widevine DRM module fall back to Android's per-profile ID. The dashboard marks these as **Weaker phone ID**.

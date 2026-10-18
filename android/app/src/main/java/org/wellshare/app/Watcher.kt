@@ -34,7 +34,16 @@ class Watcher : AccessibilityService() {
             "com.brave.browser" to "url_bar",
             "com.microsoft.emmx" to "url_bar",
             "com.sec.android.app.sbrowser" to "location_bar_edit_text",
+            "com.vivaldi.browser" to "url_bar",
+            "com.kiwibrowser.browser" to "url_bar",
+            "org.mozilla.firefox" to "mozac_browser_toolbar_url_view",
+            "com.opera.browser" to "url_field",
+            "com.duckduckgo.mobile.android" to "omnibarTextInput",
         )
+        /** Sync when the phone is in use and the last upload is older than this. */
+        private const val SYNC_EVERY_MS = 50 * 60 * 1000L
+        /** After a failed attempt (no internet), wait this long before trying again. */
+        private const val RETRY_MS = 10 * 60 * 1000L
         private const val MAX_SEGMENT_MS = 3 * 60 * 60 * 1000L
 
         fun isEnabled(context: Context): Boolean {
@@ -64,12 +73,39 @@ class Watcher : AccessibilityService() {
 
     private val screenReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
-            if (i.action == Intent.ACTION_SCREEN_OFF) {
-                closeSite(System.currentTimeMillis())
-                fgPkg = null
-                checkToken++
+            when (i.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    closeSite(System.currentTimeMillis())
+                    fgPkg = null
+                    checkToken++
+                }
+                // The phone is in use (and has network): a good moment to upload.
+                Intent.ACTION_USER_PRESENT, Intent.ACTION_SCREEN_ON -> maybeSync()
             }
         }
+    }
+
+    /** Checks every 15 minutes while the service is alive (uploads at most hourly), independent of Android's job scheduler. */
+    private val heartbeat = object : Runnable {
+        override fun run() {
+            maybeSync()
+            main.postDelayed(this, 15 * 60 * 1000L)
+        }
+    }
+
+    /**
+     * Uploads from here whenever the phone is being used and the last upload is old.
+     * Android can hold back background jobs for a day or more for apps that are rarely opened;
+     * this keeps reports flowing without the student opening WellShare.
+     */
+    private fun maybeSync() {
+        val prefs = Prefs(this)
+        if (!prefs.isRegistered) return
+        val now = System.currentTimeMillis()
+        if (now - prefs.lastSyncAt < SYNC_EVERY_MS || now - prefs.lastSyncAttemptAt < RETRY_MS) return
+        prefs.lastSyncAttemptAt = now
+        closeSite(now)
+        worker.post { try { Sync.run(applicationContext) } catch (_: Exception) {} }
     }
 
     override fun onServiceConnected() {
@@ -81,10 +117,14 @@ class Watcher : AccessibilityService() {
         imes = try {
             (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).enabledInputMethodList.map { it.packageName }.toSet()
         } catch (_: Exception) { emptySet() }
-        val f = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        val f = IntentFilter(Intent.ACTION_SCREEN_OFF).apply {
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
+        }
         if (Build.VERSION.SDK_INT >= 33) registerReceiver(screenReceiver, f, RECEIVER_NOT_EXPORTED)
         else @Suppress("UnspecifiedRegisterReceiverFlag") registerReceiver(screenReceiver, f)
         Notify.showSharing(this)
+        main.postDelayed(heartbeat, 60 * 1000L)
     }
 
     override fun onAccessibilityEvent(e: AccessibilityEvent?) {
@@ -105,6 +145,7 @@ class Watcher : AccessibilityService() {
     override fun onInterrupt() {}
 
     override fun onDestroy() {
+        main.removeCallbacks(heartbeat)
         closeSite(System.currentTimeMillis())
         try { unregisterReceiver(screenReceiver) } catch (_: Exception) {}
         if (::workerThread.isInitialized) workerThread.quitSafely()
@@ -115,6 +156,7 @@ class Watcher : AccessibilityService() {
 
     private fun onForeground(pkg: String) {
         if (pkg == fgPkg) return
+        maybeSync()
         val prev = fgPkg
         fgPkg = pkg
         if (prev != null && prev in BROWSERS) closeSite(System.currentTimeMillis())
