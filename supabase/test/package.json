@@ -7,6 +7,6 @@
     "test": "node test.mjs ../schema.sql"
   },
   "dependencies": {
-    "@electric-sql/pglite": "0.5.10"
+    "@electric-sql/pglite": "0.5.11"
   }
 }
