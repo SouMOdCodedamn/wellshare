@@ -59,7 +59,8 @@ WRITES = {
 for t, row in WRITES.items():
     s, txt = call("POST", f"/rest/v1/{t}", row, {"Prefer": "return=minimal"})
     record("LIVE-02", s in (401, 403), f"Public key cannot write table {t}", f"HTTP {s} {txt[:120]}")
-    s, txt = call("PATCH", f"/rest/v1/{t}?id=eq.{uuid.uuid4()}", {"updated_at": "2026-01-01T00:00:00Z"} if t == "daily_usage" else {"full_name": "x"} if t == "participants" else {"name": "x"} if t == "groups" else {"lat": 1})
+    key_col = "participant_id" if t == "daily_usage" else "id"
+    s, txt = call("PATCH", f"/rest/v1/{t}?{key_col}=eq.{uuid.uuid4()}", {"updated_at": "2026-01-01T00:00:00Z"} if t == "daily_usage" else {"full_name": "x"} if t == "participants" else {"name": "x"} if t == "groups" else {"lat": 1})
     record("LIVE-02", s in (401, 403) or (s in (200, 204) and txt.strip() in ("", "[]")), f"Public key cannot change table {t}", f"HTTP {s} {txt[:120]}")
 
 for fn, args in {
