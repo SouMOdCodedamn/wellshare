@@ -105,6 +105,9 @@ for st, tid, what, detail in results:
     icon = {"PASS": "✅", "WARN": "⚠️", "FAIL": "❌"}[st]
     lines.append(f"| {icon} {st} | {tid} | {what} | {detail.replace('|', '/')[:100] if st != 'PASS' else ''} |")
     print(f"  {st:4}  [{tid}] {what}" + (f" — {detail}" if st != "PASS" and detail else ""))
+    if os.environ.get("GITHUB_ACTIONS") and st != "PASS":
+        level = "error" if st == "FAIL" else "warning"
+        print(f"::{level} title=Live check {tid}::{what} — {detail[:200]}")
 summary = os.environ.get("GITHUB_STEP_SUMMARY")
 if summary:
     with open(summary, "a", encoding="utf-8") as f:
