@@ -49,9 +49,18 @@ TABLES = ["groups", "mentors", "participants", "device_secrets", "daily_usage", 
 for t in TABLES:
     s, txt = call("GET", f"/rest/v1/{t}?select=*&limit=1")
     record("LIVE-01", denied(s, txt), f"Public key cannot read table {t}", f"HTTP {s} {txt[:120]}")
-for t in ["daily_usage", "participants", "sos_events"]:
-    s, txt = call("POST", f"/rest/v1/{t}", {"participant_id": str(uuid.uuid4())}, {"Prefer": "return=minimal"})
+# Real column names, so the database has to decide on permission (not reject an unknown column).
+WRITES = {
+    "daily_usage": {"participant_id": str(uuid.uuid4()), "day": "2026-01-01", "screen_time_sec": 1},
+    "participants": {"group_id": str(uuid.uuid4()), "full_name": "Security Check", "roll_no": "X", "device_hash": "0" * 64},
+    "sos_events": {"participant_id": str(uuid.uuid4())},
+    "groups": {"name": "Security Check", "join_code": "ZZ" + uuid.uuid4().hex[:8]},
+}
+for t, row in WRITES.items():
+    s, txt = call("POST", f"/rest/v1/{t}", row, {"Prefer": "return=minimal"})
     record("LIVE-02", s in (401, 403), f"Public key cannot write table {t}", f"HTTP {s} {txt[:120]}")
+    s, txt = call("PATCH", f"/rest/v1/{t}?id=eq.{uuid.uuid4()}", {"updated_at": "2026-01-01T00:00:00Z"} if t == "daily_usage" else {"full_name": "x"} if t == "participants" else {"name": "x"} if t == "groups" else {"lat": 1})
+    record("LIVE-02", s in (401, 403) or (s in (200, 204) and txt.strip() in ("", "[]")), f"Public key cannot change table {t}", f"HTTP {s} {txt[:120]}")
 
 for fn, args in {
     "mentor_overview": {"p_group": str(uuid.uuid4()), "p_today": "2026-01-01", "p_days": 7},
