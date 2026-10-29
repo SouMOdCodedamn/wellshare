@@ -37,6 +37,8 @@ object Api {
             .put("p_android_version", androidVersion)
             .put("p_app_version", appVersion)
         val r = JSONObject(rpc("register_device", body))
+        // A wrong group code comes back as {"error": "..."} so the server can count failed guesses.
+        r.optString("error").takeIf { it.isNotBlank() }?.let { throw ApiError(it, friendly(it)) }
         return Registration(
             token = r.getString("token"),
             fullName = r.getString("full_name"),
@@ -165,6 +167,7 @@ object Api {
         "BAD_DEVICE_ID" -> "This phone couldn't produce a device id."
         "INVALID_TOKEN" -> "Your registration was removed by your mentor. Please register again."
         "DEVICE_MISMATCH" -> "This registration belongs to a different phone. Please register again."
+        "TOO_MANY_ATTEMPTS" -> "Too many wrong group codes from this network. Wait 15 minutes, then check the code with your mentor."
         "SOS_RATE_LIMIT" -> "You've sent several SOS alerts in the last few minutes. Your mentor already has them. Call them directly or call 112."
         "NETWORK" -> "Couldn't reach the server. Check your internet (hostel Wi-Fi login page?) and try again."
         "NOT_CONFIGURED" -> "This copy of the app has no server address. Download the official build from your project's Releases page."

@@ -26,7 +26,7 @@ class SitesStore(context: Context) {
         val oldest = LocalDate.now().minusDays(9).toString()
         val keys = all.keys().asSequence().toList()
         for (k in keys) if (k < oldest) all.remove(k)
-        sp.edit().putString("days", all.toString()).apply()
+        sp.edit().putString("days", Secure.encrypt(all.toString())).apply()
     }
 
     @Synchronized
@@ -43,8 +43,9 @@ class SitesStore(context: Context) {
     @Synchronized
     fun clear() = sp.edit().clear().apply()
 
+    /** Stored encrypted (see Secure); older plain-text logs are still read. */
     private fun load(): JSONObject = try {
-        JSONObject(sp.getString("days", "{}") ?: "{}")
+        JSONObject(Secure.decrypt(sp.getString("days", null)) ?: "{}")
     } catch (_: Exception) {
         JSONObject()
     }

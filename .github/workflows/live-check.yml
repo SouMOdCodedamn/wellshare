@@ -1,0 +1,26 @@
+# Checks the REAL setup from the outside, using only the public key inside the app:
+# tables unreadable, mentor functions closed, tokens required, sign-ups off, dashboard locked down.
+# Read-only. Runs every Monday and on demand (Actions > Live security check > Run workflow).
+name: Live security check
+
+on:
+  schedule:
+    - cron: "15 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Check the live database and dashboard
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          export DASHBOARD_URL="https://${OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          python3 security/live_check.py

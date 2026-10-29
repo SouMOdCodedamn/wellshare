@@ -1,0 +1,23 @@
+# Security rules + secret scan on every change, and once a week.
+# See docs/SECURITY-TESTING.md for what each rule ID means.
+name: Security
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "30 3 * * 1"   # Mondays 09:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: No secrets in the code
+        run: python3 security/scan_secrets.py
+      - name: Security rules (app sandbox, database access, dashboard, build pipeline)
+        run: python3 security/check_policy.py

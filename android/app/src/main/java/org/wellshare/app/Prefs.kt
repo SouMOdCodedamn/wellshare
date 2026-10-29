@@ -17,13 +17,28 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("consented", false)
         set(v) = sp.edit().putBoolean("consented", v).apply()
 
+    /** Secret upload token: stored encrypted with a key kept in the Android Keystore. */
     var token: String?
-        get() = sp.getString("token", null)
-        set(v) = sp.edit().putString("token", v).apply()
+        get() = readSecret("token")
+        set(v) = writeSecret("token", v)
 
+    /** Hashed device id: stored encrypted too. */
     var deviceHash: String?
-        get() = sp.getString("device_hash", null)
-        set(v) = sp.edit().putString("device_hash", v).apply()
+        get() = readSecret("device_hash")
+        set(v) = writeSecret("device_hash", v)
+
+    private fun readSecret(key: String): String? {
+        val raw = sp.getString(key, null) ?: return null
+        val plain = Secure.decrypt(raw)
+        // Values saved by older versions were plain text: encrypt them now.
+        if (plain != null && !raw.startsWith(Secure.PREFIX)) writeSecret(key, plain)
+        return plain
+    }
+
+    private fun writeSecret(key: String, v: String?) {
+        if (v == null) sp.edit().remove(key).apply()
+        else sp.edit().putString(key, Secure.encrypt(v)).apply()
+    }
 
     var fullName: String?
         get() = sp.getString("full_name", null)

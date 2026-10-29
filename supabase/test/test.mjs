@@ -57,7 +57,7 @@ await expectError(`insert into public.daily_usage(participant_id, day, screen_ti
 console.log('Registration rules');
 const reg = (code, name, roll, dev, src = 'drm') =>
   db.query(`select public.register_device($1,$2,$3,$4,$5,'Pixel 7','14','1.0') as r`, [code, name, roll, dev, src]).then(x => x.rows[0].r);
-await expectError(`select public.register_device('WRONG','Asha','R1',$1)`, [DEV_A], 'INVALID_CODE', 'wrong join code rejected');
+ok((await db.query(`select public.register_device('WRONG','Asha','R1',$1) as r`, [DEV_A])).rows[0].r.error === 'INVALID_CODE', 'wrong join code rejected (returned as error)');
 await expectError(`select public.register_device('BLOCKA25','Asha','R1','abc')`, [], 'BAD_DEVICE_ID', 'malformed device id rejected');
 await expectError(`select public.register_device('BLOCKA25','A','R1',$1)`, [DEV_A], 'BAD_NAME', 'too-short name rejected');
 const a1 = await reg(' blocka25 ', 'Asha Kumari', 'cs101', DEV_A);
@@ -248,6 +248,29 @@ await asRole('authenticated', M1);
 await db.query(`delete from participants where id = $1`, [b2.participant_id]);
 await asOwner();
 ok((await db.query(`select count(*)::int n from sos_events where participant_id=$1`, [b2.participant_id])).rows[0].n === 0, 'SOS history deleted with the student');
+
+console.log('v2.1: group codes cannot be guessed');
+await asRole('anon');
+const fromIp = (ip) => db.exec(`select set_config('request.headers', '${JSON.stringify({ 'x-forwarded-for': ip + ', 10.0.0.1' })}', false)`);
+await fromIp('203.0.113.7');
+for (let i = 0; i < 10; i++) {
+  const r = (await db.query(`select public.register_device($1,'Guesser','G1',$2) as r`, ['GUESS' + i, H('9')])).rows[0].r;
+  if (r.error !== 'INVALID_CODE') ok(false, 'guess should be INVALID_CODE');
+}
+await expectError(`select public.register_device('BLOCKA25','Guesser','G1',$1)`, [H('9')], 'TOO_MANY_ATTEMPTS', '11th try from the same address is paused, even with the right code');
+await fromIp('198.51.100.9');
+const okReg = (await db.query(`select public.register_device('BLOCKA25','Other Person','G2',$1) as r`, [H('8')])).rows[0].r;
+ok(!!okReg.token, 'a different address is not affected');
+await expectError(`select * from register_attempts`, [], 'permission denied', 'phones cannot read the attempt log');
+await asRole('authenticated', M1);
+await expectError(`select * from register_attempts`, [], 'permission denied', 'mentors cannot read the attempt log');
+await asOwner();
+ok((await db.query(`select count(*)::int n from register_attempts where ip = '203.0.113.7'`)).rows[0].n === 10, 'failed guesses are recorded (10), first address only');
+await db.exec(`select set_config('request.headers', '', false)`);
+await asRole('anon');
+ok(!!(await db.query(`select public.register_device('BLOCKA25','No Header','G3',$1) as r`, [H('7')])).rows[0].r.token, 'works without address headers (e.g. SQL Editor)');
+await asRole('anon');
+await expectError(`select public._client_ip()`, [], 'permission denied', 'phones cannot call internal helpers');
 
 // ===================== Upgrade from v1 =====================
 console.log('Upgrade: v1 database -> v2 keeps data');

@@ -226,6 +226,14 @@ Tell participants exactly what is collected before they join. [`PRIVACY.md`](PRI
 
 ---
 
+## Security
+
+WellShare's protection lives in the database rules, so it holds even though the code is public. The public key inside the app can't read or change anything on its own. Real secrets (the Supabase secret key, the database password, the signing key) are never in the code, and scanners fail the build if one appears. Traffic is HTTPS-only, data on the phone is encrypted with the Android Keystore, and release builds are obfuscated.
+
+- **What's tested, and when:** [docs/SECURITY-TESTING.md](docs/SECURITY-TESTING.md): secret scanning, 115 security rules, 86 database tests, APK checks, CodeQL, and a weekly **Live security check** of your real setup (Actions tab).
+- **Reporting a problem:** [SECURITY.md](SECURITY.md)
+- **One-time settings for the repo owner:** Settings → Code security → turn on **Secret scanning**, **Push protection**, **Dependabot alerts** and **Private vulnerability reporting**.
+
 ## Project layout
 
 ```
@@ -243,10 +251,13 @@ android/               Android app (Kotlin, no third-party libraries)
     DeviceId.kt        One stable, hashed ID per physical phone
     Api.kt             Calls the phone's database functions
     Sync.kt            Background upload every hour (JobScheduler)
+    Secure.kt          AES-256-GCM encryption with a key kept in the Android Keystore
   app/src/test/...     Screen-time and website-name tests
 dashboard/index.html   Mentor dashboard (single file, works on GitHub Pages)
+dashboard/build.py     Fills in settings and adds the Content-Security-Policy when deploying
 supabase/schema.sql    Tables, security rules and functions
 supabase/test/         Database rule tests incl. upgrade from v1 (in-memory Postgres, no account needed)
+security/              Secret scanner, security rules, APK checks, live check, reviewed permission list
 .github/workflows/     Build APK on release · deploy dashboard · run tests
 ```
 

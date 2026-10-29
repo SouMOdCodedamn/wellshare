@@ -21,7 +21,7 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check server settings
         env:
@@ -110,13 +110,35 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "out/WellShare-${{ steps.ver.outputs.name }}.apk"
           ls -la out
 
-      - uses: actions/upload-artifact@v4
+      - name: Security checks on the APK
+        run: bash security/check_apk.sh "out/WellShare-${{ steps.ver.outputs.name }}.apk"
+
+      - name: Checksum (lets anyone confirm the download wasn't altered)
+        working-directory: out
+        run: |
+          sha256sum "WellShare-${{ steps.ver.outputs.name }}.apk" > "WellShare-${{ steps.ver.outputs.name }}.apk.sha256"
+          cat ./*.sha256
+          echo "### SHA-256" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat ./*.sha256 >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the R8 mapping (turns obfuscated crash reports back into readable ones)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r8-mapping-${{ steps.ver.outputs.name }}
+          path: android/app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: warn
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: WellShare-${{ steps.ver.outputs.name }}
-          path: out/*.apk
+          path: |
+            out/*.apk
+            out/*.sha256
 
       - name: Attach APK to the release
         if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
-          files: out/*.apk
+          files: |
+            out/*.apk
+            out/*.sha256

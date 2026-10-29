@@ -103,6 +103,14 @@ create table if not exists public.sos_events (
   acknowledged_by uuid
 );
 
+-- v2.1: failed registration attempts, to stop group codes being guessed
+create table if not exists public.register_attempts (
+  id  bigserial primary key,
+  ip  text not null,
+  at  timestamptz not null default now()
+);
+create index if not exists register_attempts_ip_idx on public.register_attempts(ip, at);
+
 create index if not exists participants_group_idx on public.participants(group_id);
 create index if not exists daily_usage_day_idx on public.daily_usage(day);
 create index if not exists app_limits_group_idx on public.app_limits(group_id);
@@ -117,14 +125,15 @@ alter table public.device_secrets enable row level security;
 alter table public.daily_usage    enable row level security;
 alter table public.app_limits     enable row level security;
 alter table public.sos_events     enable row level security;
+alter table public.register_attempts enable row level security;   -- no policies: never readable through the API
 
 -- Phones use the public key ("anon"): give that role no direct table access.
 revoke all on public.groups, public.mentors, public.participants, public.device_secrets,
-              public.daily_usage, public.app_limits, public.sos_events from anon;
+              public.daily_usage, public.app_limits, public.sos_events, public.register_attempts from anon;
 -- Mentors (role "authenticated") may only read, and remove a participant.
 -- Every other change goes through the mentor_* functions below.
 revoke all on public.groups, public.mentors, public.participants, public.device_secrets,
-              public.daily_usage, public.app_limits, public.sos_events from authenticated;
+              public.daily_usage, public.app_limits, public.sos_events, public.register_attempts from authenticated;
 grant select on public.groups, public.mentors, public.participants, public.daily_usage,
                 public.app_limits, public.sos_events to authenticated;
 grant delete on public.participants to authenticated;
@@ -214,6 +223,19 @@ begin
 end;
 $$;
 
+-- The caller's IP address as seen by the API gateway (null in the SQL Editor).
+create or replace function public._client_ip()
+returns text
+language sql stable
+set search_path = public, pg_temp
+as $$
+  select nullif(btrim(coalesce(
+           h->>'cf-connecting-ip',
+           split_part(coalesce(h->>'x-forwarded-for', ''), ',', 1),
+           h->>'x-real-ip', '')), '')
+    from (select nullif(current_setting('request.headers', true), '')::json as h) t;
+$$;
+
 -- App timers that apply to one participant. A personal timer beats a group timer.
 create or replace function public._limits_for(p_pid uuid)
 returns jsonb
@@ -257,7 +279,14 @@ declare
   v_token    text := public._new_token();
   v_name     text := btrim(coalesce(p_full_name, ''));
   v_roll     text := upper(btrim(coalesce(p_roll_no, '')));
+  v_ip       text := public._client_ip();
 begin
+  -- Stop group codes being guessed: at most 10 wrong codes per network address per 15 minutes.
+  if v_ip is not null and (select count(*) from public.register_attempts
+                            where ip = v_ip and at > now() - interval '15 minutes') >= 10 then
+    raise exception 'TOO_MANY_ATTEMPTS';
+  end if;
+
   if p_device_hash is null or p_device_hash !~ '^[0-9a-f]{64}$' then
     raise exception 'BAD_DEVICE_ID';
   end if;
@@ -271,7 +300,18 @@ begin
   select * into v_group from public.groups
    where upper(join_code) = upper(btrim(coalesce(p_join_code, '')));
   if not found then
-    raise exception 'INVALID_CODE';
+    -- Returned (not raised) so the failed attempt is saved and counted.
+    if v_ip is not null then
+      delete from public.register_attempts where at < now() - interval '1 day';
+      insert into public.register_attempts (ip) values (v_ip);
+    end if;
+    return json_build_object('error', 'INVALID_CODE');
+  end if;
+
+  -- A whole hostel registering at once is fine; hundreds of new phones in minutes is not.
+  if (select count(*) from public.participants
+       where group_id = v_group.id and created_at > now() - interval '10 minutes') >= 100 then
+    raise exception 'TOO_MANY_ATTEMPTS';
   end if;
 
   -- Is this phone already registered (any profile, any reinstall)?
@@ -748,6 +788,7 @@ revoke execute on function public._hash_token(text)                             
 revoke execute on function public._new_token()                                               from public, anon, authenticated;
 revoke execute on function public._phone_participant(text,text)                              from public, anon, authenticated;
 revoke execute on function public._limits_for(uuid)                                          from public, anon, authenticated;
+revoke execute on function public._client_ip()                                               from public, anon, authenticated;
 
 -- Phone functions
 grant execute on function public.register_device(text,text,text,text,text,text,text,text) to anon, authenticated;

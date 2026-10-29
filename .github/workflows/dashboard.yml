@@ -5,7 +5,7 @@ name: Mentor dashboard
 on:
   push:
     branches: [main]
-    paths: ["dashboard/**", ".github/workflows/dashboard.yml"]
+    paths: ["dashboard/**", ".github/workflows/dashboard.yml", "security/scan_secrets.py"]
   workflow_dispatch:
 
 permissions:
@@ -24,32 +24,26 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: Build page with your server settings
+      - name: Get the sign-in library from npm (npm checks its integrity)
+        run: |
+          mkdir -p "$RUNNER_TEMP/sb" && cd "$RUNNER_TEMP/sb"
+          npm pack @supabase/supabase-js@2.117.2 --silent
+          tar xzf supabase-supabase-js-2.117.2.tgz
+
+      - name: Build page (settings, security policy, library)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: |
-          mkdir -p _site
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
-            echo "::warning::SUPABASE_URL / SUPABASE_KEY secrets are missing, so the dashboard will show demo data."
-          fi
-          python3 - <<'PY'
-          import os
-          src = open("dashboard/index.html", encoding="utf-8").read()
-          src = src.replace("__SUPABASE_URL__", os.environ.get("SUPABASE_URL", "").strip().rstrip("/"))
-          src = src.replace("__SUPABASE_KEY__", os.environ.get("SUPABASE_KEY", "").strip())
-          head = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
-                  '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n'
-                  '<meta name="robots" content="noindex">\n')
-          open("_site/index.html", "w", encoding="utf-8").write(head + src + "\n</html>\n")
-          PY
-          touch _site/.nojekyll
+        run: python3 dashboard/build.py --out _site --vendor "$RUNNER_TEMP/sb/package/dist/umd/supabase.js"
 
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - name: No secrets in the published site
+        run: python3 security/scan_secrets.py --dir _site --built
+
+      - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: _site
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

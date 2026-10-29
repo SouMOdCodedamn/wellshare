@@ -376,7 +376,9 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
   // ---- Settings (filled in automatically by the GitHub Pages deploy) ----
   const SUPABASE_URL = "__SUPABASE_URL__";
   const SUPABASE_KEY = "__SUPABASE_KEY__";
-  const SUPABASE_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js";
+  // The sign-in library is served from this same site (copied from npm, integrity-checked, by the deploy workflow).
+  const SUPABASE_JS = "vendor/supabase.js";
+  const SUPABASE_JS_SRI = "__SUPABASE_JS_SRI__";
   const REFRESH_MS = 60 * 1000;
   const NOT_REPORTING_HOURS = 12;
   // Never limited on the phone; hidden from the timer pickers.
@@ -389,6 +391,12 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
 
   const $ = (id) => document.getElementById(id);
   const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+
+  // Refuse to run inside another site's frame (protects mentors from click-jacking).
+  if (configured && window.top !== window.self) {
+    document.body.replaceChildren(el("p", null, "For your security, open the WellShare dashboard directly in a browser tab."));
+    return;
+  }
   const SVGNS = "http://www.w3.org/2000/svg";
   const svg = (tag, attrs) => { const n = document.createElementNS(SVGNS, tag); for (const k in attrs) n.setAttribute(k, attrs[k]); return n; };
   const button = (text, cls, onClick) => { const b = el("button", cls, text); b.type = "button"; if (onClick) b.addEventListener("click", onClick); return b; };
@@ -545,7 +553,13 @@ td.sync .chips { display: flex; gap: 6px; flex-wrap: nowrap; }
   }
 
   function loadScript(src) {
-    return new Promise((res, rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Couldn't load " + src)); document.head.appendChild(s); });
+    return new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = src;
+      if (SUPABASE_JS_SRI.startsWith("sha384-")) { s.integrity = SUPABASE_JS_SRI; s.crossOrigin = "anonymous"; }
+      s.onload = res; s.onerror = () => rej(new Error("Couldn't load " + src));
+      document.head.appendChild(s);
+    });
   }
 
   $("loginForm").addEventListener("submit", async (e) => {

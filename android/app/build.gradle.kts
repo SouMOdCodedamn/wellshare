@@ -46,7 +46,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: shrink and obfuscate the release app (see proguard-rules.pro).
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             // Without your own key, fall back to a debug key so the APK still installs.
             signingConfig = signingConfigs.getByName(if (keystoreFile != null) "release" else "debug")
         }
