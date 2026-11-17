@@ -31,6 +31,10 @@ class MainActivity : Activity() {
 
     companion object {
         const val ACTION_SOS = "org.wellshare.app.SOS"
+        const val ACTION_INSTALL_UPDATE = "org.wellshare.app.INSTALL_UPDATE"
+
+        /** True while WellShare is on screen (Android only lets it show the install screen then). */
+        @Volatile var visible = false
         private const val REQ_SAFETY = 7
         private const val REQ_NOTIFY = 9
     }
@@ -41,6 +45,8 @@ class MainActivity : Activity() {
 
     /** SOS was asked for from the notification. */
     private var sosRequested = false
+    /** "Install update" was tapped in the notification. */
+    private var installRequested = false
     /** The SOS screen is showing; keep it until the student closes it. */
     @Volatile private var sosActive = false
 
@@ -49,17 +55,25 @@ class MainActivity : Activity() {
         ui = Ui(this)
         prefs = Prefs(this)
         if (intent?.action == ACTION_SOS) sosRequested = true
+        if (intent?.action == ACTION_INSTALL_UPDATE) installRequested = true
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.action == ACTION_SOS) sosRequested = true
+        if (intent.action == ACTION_INSTALL_UPDATE) installRequested = true
     }
 
     override fun onResume() {
         super.onResume()
+        visible = true
         if (!sosActive) render()
+    }
+
+    override fun onPause() {
+        visible = false
+        super.onPause()
     }
 
     /** Picks the right screen for where the student is in setup. */
@@ -75,10 +89,14 @@ class MainActivity : Activity() {
         }
         if (!prefs.safetyAsked) { showSafety(); return }
         if (!prefs.backgroundAsked && !runsInBackground()) { showBackground(); return }
+        if (!prefs.updatesAsked && Updater.enabled && !Updater.canInstall(this)) { showUpdates(); return }
         showHome(autoSync = System.currentTimeMillis() - prefs.lastSyncAt > 15 * 60 * 1000L)
         if (sosRequested) {
             sosRequested = false
             confirmSos()
+        } else if (installRequested) {
+            installRequested = false
+            installUpdate()
         }
     }
 
@@ -408,7 +426,7 @@ class MainActivity : Activity() {
 
     private fun showBackground() {
         val col = ui.column(24)
-        col.addView(ui.small("ONE LAST THING"))
+        col.addView(ui.small("ALMOST DONE"))
         col.addView(ui.gap(6))
         col.addView(ui.title("Let WellShare run in the background"))
         col.addView(ui.gap(12))
@@ -434,6 +452,114 @@ class MainActivity : Activity() {
             render()
         }, ui.fullWidth())
         setScreen(col)
+    }
+
+    // ---------- Updates ----------
+
+    private fun openInstallPermission() {
+        prefs.updatesAsked = true
+        try {
+            startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:$packageName")))
+        } catch (_: Exception) {
+            openAppInfo()
+        }
+    }
+
+    private fun showUpdates() {
+        val col = ui.column(24)
+        col.addView(ui.small("ONE LAST THING"))
+        col.addView(ui.gap(6))
+        col.addView(ui.title("Get updates automatically"))
+        col.addView(ui.gap(12))
+        col.addView(ui.body("New versions of WellShare will install by themselves, so you never have to download the app again. " +
+            "Android asks you to allow this once."))
+        col.addView(ui.gap(12))
+        val card = ui.card()
+        bullets(card, listOf(
+            "WellShare only installs its own updates, from your programme's official page.",
+            "Each update is checked before it installs, and Android only accepts it if it is signed by the same key as this app.",
+            "Your registration and history are kept.",
+        ))
+        col.addView(card, ui.fullWidth())
+        col.addView(ui.gap(16))
+        col.addView(ui.button("Allow") { openInstallPermission() }, ui.fullWidth())
+        col.addView(ui.gap(8))
+        col.addView(ui.small("On the next screen, turn on \"Allow from this source\", then come back."))
+        col.addView(ui.gap(16))
+        col.addView(ui.button("Skip for now", primary = false) {
+            prefs.updatesAsked = true
+            render()
+        }, ui.fullWidth())
+        setScreen(col)
+    }
+
+    /** Installs a downloaded update, or looks for one first. */
+    private fun installUpdate() {
+        Updater.cancelNotification(this)
+        Thread {
+            val started = try { Updater.installReady(this) } catch (_: Exception) { false }
+            if (!started) Updater.check(this)
+            main.post { if (!sosActive && visible) render() }
+        }.start()
+    }
+
+    private fun updateText(st: Updater.Status): String {
+        val v = "Version ${BuildConfig.VERSION_NAME}"
+        val latest = st.latestName ?: "new"
+        val checked = if (st.checkedAt > 0)
+            " · checked " + DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(st.checkedAt)) else ""
+        val line = when (st.state) {
+            Updater.State.IDLE -> "$v · updates install by themselves"
+            Updater.State.UP_TO_DATE -> "$v · up to date$checked"
+            Updater.State.NOT_PUBLISHED -> "$v · no newer version yet$checked"
+            Updater.State.DOWNLOADING -> "$v · downloading version $latest…"
+            Updater.State.INSTALLING -> "$v · installing version $latest…"
+            Updater.State.NEEDS_TAP -> "$v · version $latest is ready to install"
+            Updater.State.NEEDS_REINSTALL -> "$v · ${st.message ?: "version $latest must be installed by hand once."}"
+            Updater.State.FAILED -> "$v · ${st.message ?: "Update failed."} WellShare will try again later."
+        }
+        val recent = st.updatedTo == BuildConfig.VERSION_NAME && System.currentTimeMillis() - st.updatedAt < 3 * 24 * 3600 * 1000L
+        return if (recent) "$line\nUpdated automatically on " +
+            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(st.updatedAt)) else line
+    }
+
+    private fun updateCard(): LinearLayout {
+        val st = Updater.status(this)
+        val card = ui.card()
+        card.addView(ui.heading("App updates"))
+        card.addView(ui.gap(4))
+        val line = ui.small(updateText(st))
+        card.addView(line)
+        if (st.state == Updater.State.NEEDS_TAP) {
+            card.addView(ui.gap(12))
+            card.addView(ui.button("Install version ${st.latestName ?: "update"}") { installUpdate() }, ui.fullWidth())
+        }
+        if (st.state == Updater.State.NEEDS_REINSTALL) {
+            Updater.releasesPage?.let { page ->
+                card.addView(ui.gap(12))
+                card.addView(ui.button("Open download page", primary = false) {
+                    try { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(page))) } catch (_: ActivityNotFoundException) {}
+                }, ui.fullWidth())
+            }
+        }
+        if (!Updater.canInstall(this)) {
+            card.addView(ui.gap(12))
+            card.addView(ui.small("Allow WellShare to install its own updates, so you never need to download the app again.", ui.warn))
+            card.addView(ui.gap(8))
+            card.addView(ui.button("Allow automatic updates", primary = false) { openInstallPermission() }, ui.fullWidth())
+        }
+        card.addView(ui.gap(12))
+        lateinit var check: View
+        check = ui.button("Check for updates", primary = false) {
+            check.isEnabled = false
+            line.text = "Checking…"
+            Thread {
+                Updater.check(this)
+                main.post { if (!sosActive && visible) render() }
+            }.start()
+        }
+        card.addView(check, ui.fullWidth())
+        return card
     }
 
     // ---------- Home: the student's own report ----------
@@ -474,6 +600,10 @@ class MainActivity : Activity() {
         if (!runsInBackground()) {
             col.addView(ui.banner("Automatic sharing may be delayed: Android is limiting WellShare in the background.",
                 "Let WellShare run in the background") { askBackground() }, ui.fullWidth())
+            col.addView(ui.gap(12))
+        }
+        if (Updater.enabled && Updater.status(this).state == Updater.State.NEEDS_TAP) {
+            col.addView(ui.banner("A new version of WellShare is ready.", "Install update") { installUpdate() }, ui.fullWidth())
             col.addView(ui.gap(12))
         }
         if (Build.VERSION.SDK_INT >= 33 && !Notify.allowed(this)) {
@@ -594,7 +724,11 @@ class MainActivity : Activity() {
         col.addView(ui.gap(16))
         col.addView(ui.small("WellShare shares automatically about every hour when you're online. You don't need to press anything. " +
             "Numbers can differ slightly from Digital Wellbeing because each counts screen-on time a little differently."))
-        col.addView(ui.gap(12))
+        col.addView(ui.gap(16))
+        if (Updater.enabled) {
+            col.addView(updateCard(), ui.fullWidth())
+            col.addView(ui.gap(12))
+        }
         col.addView(ui.label("Stop sharing on this phone", 14f, ui.error).apply {
             setPadding(0, ui.dp(8), 0, ui.dp(8))
             setOnClickListener { confirmStop() }
@@ -642,6 +776,7 @@ class MainActivity : Activity() {
                         prefs.consented = false
                         prefs.safetyAsked = false
                         prefs.backgroundAsked = false
+                        prefs.updatesAsked = false
                         render()
                     }
                 }.start()

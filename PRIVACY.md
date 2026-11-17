@@ -8,7 +8,7 @@ Share this with participants before they install the app. Edit the contact line 
 
 - Total screen time per day, number of phone unlocks per day, and screen time between 00:00 and 05:00
 - Time spent in your top 20 apps, with each app's name
-- Your top 10 websites per day in Chrome, Brave, Edge and Samsung Internet, as **site names only** (for example `youtube.com`) with the time spent. Full web addresses, search words and page content are never read or sent.
+- Your top 10 websites per day in Chrome, Brave, Edge, Samsung Internet, Firefox, Opera, DuckDuckGo, Vivaldi and Kiwi, as **site names only** (for example `youtube.com`) with the time spent. Full web addresses, search words and page content are never read or sent.
 - Whether WellShare's permissions (usage access, Accessibility, notifications) are switched on
 - Your name, roll number, phone model, Android version and app version
 - A one-way scrambled code (SHA-256 hash) made from your phone's hardware ID. It lets the system keep one phone linked to one person. The real hardware ID never leaves your phone.
@@ -16,6 +16,8 @@ Share this with participants before they install the app. Edit the contact line 
 **When you press SOS:** an alert with the time and your location at that moment is sent to your mentors, and the app calls the SOS number your mentor set. Your location is not read at any other time.
 
 **What your mentor can change on your phone:** daily time limits on apps. When a limit runs out, WellShare closes that app until midnight. Calls, messages, Settings and the home screen are never blocked.
+
+**Updates:** about twice a day the app checks the programme's GitHub page for a new version of WellShare and installs it. This sends nothing about you (GitHub sees your phone's internet address, as any website does). Android only accepts an update signed with the same key as the app you installed.
 
 **What it never collects:** messages, photos, contacts, call logs, passwords, what you type, full web addresses or searches, what you watch or read inside apps, or your location outside an SOS.
 

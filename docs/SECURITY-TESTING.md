@@ -168,6 +168,24 @@ On an emulator with a **debug** build: route traffic through mitmproxy and use t
 | REL-02 | APK is signed with the **permanent** release key (warns if a temporary debug key is used) | Auto: APK check (warning until the key is set up) |
 | REL-03 | Each release has a `.sha256` file, so anyone can check the APK wasn't altered | Auto: release workflow |
 
+### In-app updates
+
+The app updates itself from this project's GitHub releases (`Updater.kt`). An update is only installed if every check below passes, and Android separately refuses any update signed with a different key.
+
+| ID | Test | How |
+|---|---|---|
+| UPD-01 | Updates come only from this project's own GitHub releases, over HTTPS; every redirect is checked (github.com or GitHub's file servers only) | Auto: rules + unit tests (`UpdateMathTest`) |
+| UPD-02 | `update.json` is validated: the app file must be in this project's releases, with a valid checksum, size and version | Auto: rules + unit tests |
+| UPD-03 | The download is checked against the announced size and SHA-256 before anything is done with it | Auto: rules |
+| UPD-04 | The downloaded app must be WellShare, with exactly the announced version, signed with the installed app's key | Auto: rules + unit tests |
+| UPD-05 | Never reinstalls the same version or installs an older one (no downgrade attacks) | Auto: rules + unit tests |
+| UPD-06 | Update files stay in the app's private storage | Auto: rules (and AND-07 bans shared storage) |
+| UPD-07 | Install results go to a receiver other apps can't reach; its PendingIntent is explicit | Auto: rules (AND-08) |
+| UPD-08 | `update.json` is published only for apps signed with the permanent key | Auto: rules + release workflow |
+| UPD-09 | Tampered update: edit a release's `update.json` so the checksum is wrong → the phone shows "failed its checksum check" and installs nothing | Manual, test phone |
+| UPD-10 | Wrong key: publish a test release signed with a different key → the phone shows "signed with a different key" and installs nothing | Manual, test phone |
+| UPD-11 | Real update: publish a full release → within 12 h (or "Check for updates") the phone updates; Android 12+ without a tap; the student stays registered and history is kept | Manual, test phone |
+
 ---
 
 ## 8. Privacy
@@ -185,6 +203,7 @@ On an emulator with a **debug** build: route traffic through mitmproxy and use t
 
 - [ ] All GitHub checks are green: Tests, Security, CodeQL (no new high-severity alerts), Android app (APK checks passed)
 - [ ] The APK check shows **"Signed with the permanent release key"** (REL-02)
+- [ ] The release is **not** marked pre-release (only full releases reach phones), and its run summary says "Phones with WellShare will update"
 - [ ] The latest `schema.sql` has been run in Supabase, and **Live security check** passes
 - [ ] Manual sandbox checks (1a) on a test phone
 - [ ] Join codes are long and random; mentors use strong passwords with two-factor sign-in on

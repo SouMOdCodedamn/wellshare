@@ -7,6 +7,7 @@ An open-source Android app plus a mentor dashboard, built for hostels where ever
 - The mentor sees one dashboard for the whole group, and a detailed report for every participant, day by day.
 - **App timers:** mentors set daily limits on apps (for one student or the whole group). When a limit runs out, the app closes until midnight.
 - **SOS button:** calls the mentor and sends an alert with the student's location, shown at the top of the dashboard.
+- **Updates itself:** new versions install automatically from your GitHub releases. Students install the app once and never download it again.
 - **Alerts:** the dashboard flags students who stop reporting (app uninstalled, phone off), turn off permissions or stop sharing.
 - **One phone = one participant.** A phone can't register a second student, not even from a second user profile, a work profile or after reinstalling. A roll number can't be registered on a second phone.
 - Free to run: GitHub (code, app downloads, dashboard hosting) + Supabase free tier (database).
@@ -121,12 +122,12 @@ Want to look around first? Add `#demo` to the address to see made-up demo data.
 ### Step 6 — Build and publish the app
 
 1. Repo → **Releases** (right-hand side) → **Draft a new release**.
-2. **Choose a tag** → type `v1.0.0` → **Create new tag**. Title: `WellShare 1.0.0`. Click **Publish release**.
+2. **Choose a tag** → type `v1.0.0` → **Create new tag**. Title: `WellShare 1.0.0`. Leave **Set as a pre-release** unticked. Click **Publish release**.
 3. The **Android app** workflow builds the APK (about 5 minutes) and attaches `WellShare-1.0.0.apk` to that release.
 
 Share this link with students: **`https://github.com/YOUR-USERNAME/wellshare/releases/latest`**
 
-> Before you have many students, set up a [permanent signing key](#permanent-signing-key-recommended). Without one, every new version needs an uninstall first.
+> Set up the [permanent signing key](#permanent-signing-key-needed-for-automatic-updates) **before** students install. Phones only update themselves to versions signed with the same key.
 
 ### Step 7 — Students install and join
 
@@ -141,6 +142,7 @@ On each student's phone:
 6. **Set up SOS** → **Allow** (calls, location only when SOS is pressed, notifications).
 7. **Let WellShare run in the background** → **Allow**. Without this, Android delays apps that are rarely opened, sometimes for days.
 8. On Xiaomi, Redmi, Poco, Realme, Oppo, Vivo or OnePlus phones also: **Settings → Apps → WellShare → Battery → No restrictions / Unrestricted**, and turn on **Autostart** if the phone has it. The app shows a button for this.
+9. **Get updates automatically** → **Allow** → turn on **Allow from this source** → back. From now on new versions install by themselves.
 
 That's it. The phone sends the last 7 days right away and then about every hour when online.
 
@@ -161,9 +163,9 @@ Use the numbers to start a conversation. One heavy day is normal; patterns over 
 
 ---
 
-## Permanent signing key (recommended)
+## Permanent signing key (needed for automatic updates)
 
-Android only installs an update over an old version if both were signed with the same key. Make one once:
+Android only installs an update over an old version if both were signed with the same key, so phones can only update themselves once you have one. Make it once, before students install:
 
 1. On any computer with Java (or free in the browser: on your repo click **Code → Codespaces → Create codespace**), run:
 
@@ -186,7 +188,18 @@ Android only installs an update over an old version if both were signed with the
 
 ## Updating the app
 
-Change the code, push, then publish a new release with a higher tag (`v1.0.1`, `v1.1.0`, …). Students download the new APK and install it over the old one. Their registration and history are kept.
+Change the code, push, then publish a new **full** release with a higher tag (`v1.0.1`, `v1.1.0`, …). Students don't need to do anything:
+
+1. The **Android app** workflow builds the APK and attaches it with `update.json` (version, checksum and signing key).
+2. About twice a day every phone reads `update.json` from your latest full release. If it's newer, the phone downloads it, checks the checksum, the version and the signing key, and installs it.
+3. **Android 12 and newer:** installs without a tap. **Android 8–11** (or when a phone asks anyway): the student gets a notification and taps **Install** once.
+4. Registration and history are kept. The dashboard shows each phone's version.
+
+Students can also tap **Check for updates** in the app.
+
+- **Test first:** tick **Set as a pre-release**. Phones ignore pre-releases, so you can install that APK on a test phone by hand. When it works, edit the release and untick **Set as a pre-release** to send it to everyone.
+- **First time only:** phones on v0.2.0 or older don't have the updater yet, and were signed with a temporary key. Students install the first version with updates by hand, once (uninstall the old app first, then register again with the same roll number: their history is kept).
+- Updates only work for apps signed with your permanent key. Without it, the release workflow warns "No automatic update".
 
 ---
 

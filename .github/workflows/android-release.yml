@@ -121,6 +121,59 @@ jobs:
           echo "### SHA-256" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat ./*.sha256 >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: In-app update file (update.json)
+        # Installed apps read update.json from the latest full release and update themselves.
+        # Only written for releases signed with the permanent key: Android refuses an update signed
+        # with a different key, so a temporary-key build can never update an installed app.
+        env:
+          NAME: ${{ steps.ver.outputs.name }}
+          CODE: ${{ github.run_number }}
+          TAG: ${{ github.event.release.tag_name }}
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          NOTES: ${{ github.event.release.body }}
+          REPO: ${{ github.repository }}
+        run: |
+          APK="out/WellShare-$NAME.apk"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          SIG="$("$BT/apksigner" verify --print-certs "$APK")"
+          if echo "$SIG" | grep -q "CN=Android Debug"; then
+            echo "::warning title=No automatic update::This app uses a temporary signing key, so phones can't update to it by themselves. Set up the permanent signing key (README > Permanent signing key)."
+            exit 0
+          fi
+          if [ -z "$TAG" ]; then
+            echo "Test build: update.json is only published with a release."
+            exit 0
+          fi
+          if ! echo "$TAG" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "::error title=Bad tag::Use a tag like v1.2.3 (letters, numbers, dots and dashes only) so phones can update."
+            exit 1
+          fi
+          CERT="$(echo "$SIG" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -1)"
+          export CERT
+          python3 - "$APK" > out/update.json <<'PY'
+          import hashlib, json, os, sys
+          apk = sys.argv[1]
+          data = open(apk, "rb").read()
+          print(json.dumps({
+              "version_code": int(os.environ["CODE"]),
+              "version_name": os.environ["NAME"],
+              "apk": f"https://github.com/{os.environ['REPO']}/releases/download/{os.environ['TAG']}/{os.path.basename(apk)}",
+              "sha256": hashlib.sha256(data).hexdigest(),
+              "size": len(data),
+              "cert_sha256": os.environ.get("CERT", "").replace(":", "").lower() or None,
+              "notes": (os.environ.get("NOTES") or "")[:600],
+          }, indent=2))
+          PY
+          cat out/update.json
+          {
+            echo "### In-app update"
+            if [ "$PRERELEASE" = "true" ]; then
+              echo "This is a **pre-release**, so phones won't update to it. To send it to every phone, edit the release and untick **Set as a pre-release**."
+            else
+              echo "Phones with WellShare will update to **$NAME** by themselves within about 12 hours."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Keep the R8 mapping (turns obfuscated crash reports back into readable ones)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -142,3 +195,4 @@ jobs:
           files: |
             out/*.apk
             out/*.sha256
+            out/update.json

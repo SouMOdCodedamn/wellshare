@@ -28,7 +28,7 @@ object Sync {
             .put("usage_access", usageOn)
             .put("watcher", Watcher.isEnabled(context))
             .put("notifications", Notify.allowed(context))
-        return try {
+        val ok = try {
             sendPendingSos(context, prefs, token, device)
             // Even with usage access off we still check in, so the mentor sees what is switched off.
             val days = if (usageOn) UsageCollector.collect(context, DAYS_TO_SEND) else emptyList()
@@ -57,6 +57,9 @@ object Sync {
             prefs.lastError = "Sync failed: ${e.javaClass.simpleName}"
             false
         }
+        // About twice a day: look for a newer WellShare and install it (see Updater).
+        if (prefs.isRegistered) try { Updater.maybeCheck(context) } catch (_: Exception) {}
+        return ok
     }
 
     /** An SOS pressed while offline is still delivered, if it is less than 30 minutes old. */

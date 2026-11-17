@@ -16,6 +16,13 @@ val localProps = Properties().apply {
 fun cfg(env: String, prop: String): String =
     System.getenv(env)?.takeIf { it.isNotBlank() } ?: localProps.getProperty(prop, "")
 
+// In-app updates come from this project's GitHub releases. GitHub Actions sets GITHUB_REPOSITORY
+// (owner/repo). On your own computer, add update.repo=owner/repo to local.properties, or leave it
+// out to build an app that doesn't update itself.
+val updateRepo = cfg("GITHUB_REPOSITORY", "update.repo")
+val updateUrl = if (Regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$").matches(updateRepo))
+    "https://github.com/$updateRepo/releases/latest/download/update.json" else ""
+
 val keystoreFile: String? = System.getenv("KEYSTORE_FILE")?.takeIf { it.isNotBlank() }
 
 android {
@@ -31,6 +38,7 @@ android {
 
         buildConfigField("String", "SUPABASE_URL", "\"${cfg("SUPABASE_URL", "supabase.url").trimEnd('/')}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${cfg("SUPABASE_KEY", "supabase.key")}\"")
+        buildConfigField("String", "UPDATE_URL", "\"$updateUrl\"")
     }
 
     signingConfigs {

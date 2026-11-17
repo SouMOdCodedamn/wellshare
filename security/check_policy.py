@@ -87,13 +87,51 @@ def android():
     for p, src in code.items():
         for mm in re.finditer(r"PendingIntent\.get(Activity|Service|Broadcast)\(", src):
             window = src[mm.start(): mm.start() + 400]
-            check("AND-08", "FLAG_IMMUTABLE" in window, f"PendingIntent in {os.path.basename(p)} is immutable")
+            if "FLAG_MUTABLE" in window:
+                # Only allowed where Android must write a result into it (install results), and only
+                # for an explicit intent to one of WellShare's own components.
+                check("AND-08", re.search(r"Intent\(\w+, *\w+::class\.java\)", window) is not None and mm.group(1) == "Broadcast",
+                      f"Mutable PendingIntent in {os.path.basename(p)} is an explicit broadcast to WellShare itself")
+            else:
+                check("AND-08", "FLAG_IMMUTABLE" in window, f"PendingIntent in {os.path.basename(p)} is immutable")
     prefs = code[os.path.join(APP, "java/org/wellshare/app/Prefs.kt")]
     check("ENC-03", 'readSecret("token")' in prefs and "Secure.encrypt" in prefs, "Upload token is stored encrypted (Keystore)")
     sites = code[os.path.join(APP, "java/org/wellshare/app/SitesStore.kt")]
     check("ENC-03", "Secure.encrypt" in sites, "Website log is stored encrypted (Keystore)")
     sm = read("android/app/src/main/java/org/wellshare/app/SiteMath.kt")
     check("PRI-02", "never the page, the search words" in sm, "Website tracking keeps site names only")
+
+
+# ---------------------------------------------------------------- In-app updates
+def updates():
+    gradle = read("android/app/build.gradle.kts")
+    um = read("android/app/src/main/java/org/wellshare/app/UpdateMath.kt")
+    up = read("android/app/src/main/java/org/wellshare/app/Updater.kt")
+    wf = read(".github/workflows/android-release.yml")
+    m = ET.parse(os.path.join(APP, "AndroidManifest.xml")).getroot()
+    check("UPD-01", '"https://github.com/$updateRepo/releases/latest/download/update.json"' in gradle,
+          "Updates come only from this project's own GitHub releases")
+    check("UPD-01", 'u.scheme != "https"' in um and 'h == "github.com" || h.endsWith(".githubusercontent.com")' in um,
+          "Every update address, including redirects, must be HTTPS on GitHub")
+    check("UPD-01", "instanceFollowRedirects = false" in up and "UpdateMath.allowedHost(url)" in up,
+          "Redirects are followed one by one and each one is checked")
+    check("UPD-02", "UpdateMath.problem(info, BuildConfig.UPDATE_URL)" in up and "startsWith(prefix)" in um,
+          "update.json is validated and the app file must be in this project's releases")
+    check("UPD-03", "md.digest()) != info.sha256" in up and "total > info.size" in up,
+          "Downloaded app is checked against the announced size and SHA-256 before use")
+    check("UPD-04", "a.packageName != c.packageName" in up and "versionOf(a) != info.versionCode" in up,
+          "Downloaded app must be WellShare with exactly the announced version")
+    check("UPD-04", "UpdateMath.sameSigner(mine, certsOf(a!!))" in up and "GET_SIGNING_CERTIFICATES" in up,
+          "Downloaded app must be signed with the installed app's key")
+    check("UPD-05", "UpdateMath.isNewer(BuildConfig.VERSION_CODE.toLong(), info)" in up,
+          "Never installs the same or an older version (no downgrades)")
+    check("UPD-06", 'File(c.cacheDir, "updates")' in up,
+          "Update files are kept in the app's private storage")
+    recv = [r for r in m.find("application").findall("receiver") if r.get(A + "name") == ".UpdateReceiver"]
+    check("UPD-07", len(recv) == 1 and recv[0].get(A + "exported") == "false",
+          "Install results go to a receiver other apps can't reach")
+    check("UPD-08", 'grep -q "CN=Android Debug"' in wf and wf.index('grep -q "CN=Android Debug"') < wf.index("out/update.json"),
+          "update.json is only published for apps signed with the permanent key")
 
 
 # ---------------------------------------------------------------- Database
@@ -160,7 +198,7 @@ def workflows():
 
 
 def main():
-    android(); database(); dashboard(); workflows()
+    android(); updates(); database(); dashboard(); workflows()
     for tid, what, _ in passes:
         print(f"  ok    [{tid}] {what}")
     for tid, what, detail in failures:

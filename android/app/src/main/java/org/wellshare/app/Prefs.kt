@@ -79,6 +79,11 @@ class Prefs(context: Context) {
         get() = sp.getBoolean("safety_asked", false)
         set(v) = sp.edit().putBoolean("safety_asked", v).apply()
 
+    /** The student has seen the "get updates automatically" setup step. */
+    var updatesAsked: Boolean
+        get() = sp.getBoolean("updates_asked", false)
+        set(v) = sp.edit().putBoolean("updates_asked", v).apply()
+
     /** An SOS that could not be sent yet (no internet); sent with the next sync. */
     var pendingSosAt: Long
         get() = sp.getLong("pending_sos_at", 0L)

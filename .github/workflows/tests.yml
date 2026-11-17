@@ -46,3 +46,9 @@ jobs:
           ../kotlinc/bin/kotlinc app/src/main/java/org/wellshare/app/SiteMath.kt \
             app/src/test/java/org/wellshare/app/SiteMathTest.kt -include-runtime -d site-test.jar
           java -cp site-test.jar org.wellshare.app.SiteMathTestKt
+      - name: Run in-app update tests
+        working-directory: android
+        run: |
+          ../kotlinc/bin/kotlinc app/src/main/java/org/wellshare/app/UpdateMath.kt \
+            app/src/test/java/org/wellshare/app/UpdateMathTest.kt -include-runtime -d update-test.jar
+          java -cp update-test.jar org.wellshare.app.UpdateMathTestKt
