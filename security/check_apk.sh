@@ -53,6 +53,17 @@ sys.exit(1 if left else 0)
 PY
 then ok "[ENC-04] Code is shrunk and obfuscated (R8)"; else bad "[ENC-04] Code is not obfuscated"; fi
 
+# [UPD-01] the app knows where its updates come from: this project's GitHub releases
+if python3 - "$TMP" "${GITHUB_REPOSITORY:-}" <<'PY'
+import glob, sys
+data = b"".join(open(p, "rb").read() for p in glob.glob(sys.argv[1] + "/classes*.dex"))
+repo = sys.argv[2]
+want = (f"https://github.com/{repo}" if repo else "").encode() + b"/releases/latest/download/update.json"
+print("        update address:", want.decode(), "found" if want in data else "MISSING")
+sys.exit(0 if want in data else 1)
+PY
+then ok "[UPD-01] App checks this project's GitHub releases for updates"; else warn "[UPD-01] App has no update address, so it won't update itself (built outside GitHub Actions?)"; fi
+
 # [KEY-01] no secrets inside the app (the public anon/publishable key is expected)
 if python3 "$HERE/scan_secrets.py" --dir "$TMP" --built; then ok "[KEY-01] No secret keys inside the app"; else bad "[KEY-01] Secret found inside the app"; fi
 rm -rf "$TMP"
